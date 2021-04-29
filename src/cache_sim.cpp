@@ -116,14 +116,14 @@ int initSimulator(CacheConfig & icConfig, CacheConfig & dcConfig, MemoryStore *m
 
 static void evict_block(bool isICache, uint32_t index) {
 
-  Cache cache = isICache ? iCache : dCache;
-  uint32_t block_size = 1 << cache.block_bits;
+  Cache* cache = isICache ? &iCache : &dCache;
+  uint32_t block_size = 1 << cache->block_bits;
 
   for (int i = 0; i < block_size; i++) {
-    uint32_t first_block_address = cache.entries[index].tag << cache.index_bits;
+    uint32_t first_block_address = cache->entries[index].tag << cache->index_bits;
     first_block_address |= index;
-    first_block_address <<= cache.block_bits + 2;
-    myMem->setMemValue(first_block_address + 4 * i, cache.entries[index].data[i], WORD_SIZE);
+    first_block_address <<= cache->block_bits + 2;
+    myMem->setMemValue(first_block_address + 4 * i, cache->entries[index].data[i], WORD_SIZE);
   }  
 }
 
