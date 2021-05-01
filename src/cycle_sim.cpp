@@ -310,20 +310,15 @@ bool cacheAccess(bool isICache, uint32_t memAddress, uint32_t *data, bool isRead
 /* End of Cache Files */ 
 
  
+// advance PC function
 void advance_pc(uint32_t offset)
 {
     PC  =  nPC;
    nPC  += offset;
 }
 
-
-// run cycles function
-int runCycles(uint32_t cycles) {
-
-  uint32_t cyclesElapsed = 0;
-
-  while (cyclesElapsed < cycles) {
-
+// IF section code
+void ifSection() {
     /* IF section  */
     uint32_t instruction = 0;
 
@@ -336,7 +331,9 @@ int runCycles(uint32_t cycles) {
     if_id.ir = instruction;
 
     /* ID section  */
+}
 
+void idSection() {
     // retrieve and decode the instruction
     instruction = if_id_cpy.ir;
 
@@ -404,9 +401,9 @@ int runCycles(uint32_t cycles) {
     }
 
     id_ex.nPC = if_id_cpy.nPC + 4;
+}
 
-    /* End of ID Section */
-
+void exSection() {
     /* Start of EX Section */ 
     int opCode = id_ex_cpy.opcode;
     // initialize variables, rs, rt, rd, imm, mostSig
@@ -716,6 +713,9 @@ int runCycles(uint32_t cycles) {
 
   /* End of EX Section */
 
+}
+
+void memSection() {
   /* Begin Mem Section */
   mem_wb.RD = ex_mem_cpy.RD;
   mem_wb.ALUOut = ex_mem_cpy.ALUOut;
@@ -738,42 +738,59 @@ int runCycles(uint32_t cycles) {
   }
 
   /* End of Mem Section */ 
+}
 
+void wbSection() {
   /* Start of WB Section */
   if (regWrite) {
     reg[mem_wb_cpy.RD] = mem_wb_cpy.ALUOut;
   }
 
   /* End of WB Section */
+}
 
-  /* Start Updating the Copies */
-  if_id_cpy.nPC = if_id.nPC;
-  if_id_cpy.IR = if_id.IR;
+// run cycles function
+int runCycles(uint32_t cycles) {
 
-  id_ex_cpy.opcode = id_ex.opcode;
-  id_ex_cpy.func_code = id_ex.func_code;
-  id_ex_cpy.nPC = id_ex.nPC;
-  id_ex_cpy.RS = id_ex.RS;
-  id_ex_cpy.RT = id_ex.RT;
-  id_ex_cpy.RD = id_ex.RD;
-  id_ex_cpy.immed = id_ex.immed;
-  id_ex_cpy.A = id_ex.A;
-  id_ex_cpy.B = id_ex.B;
-  id_ex_cpy.seimmed = id_ex.seimmed;
+  uint32_t cyclesElapsed = 0;
 
-  ex_mem_cpy.BrTgt = ex_mem.BrTgt;
-  ex_mem_cpy.Zero = ex_mem.Zero;
-  ex_mem_cpy.ALUOut = ex_mem.ALUOut;
-  ex_mem_cpy.RD = ex_mem.RD;
-  ex_mem_cpy.B = ex_mem.B;
-  ex_mem_cpy.regWrite = ex_mem.regWrite;
-  ex_mem_cpy.memWrite = ex_mem.memWrite;
-  ex_mem_cpy.memRead = ex_mem.memRead;
+  while (cyclesElapsed < cycles) {
 
-  mem_wb_cpy.RD = mem_wb.RD;
-  mem_wb_cpy.memData = mem_wb.memData;
-  mem_wb_cpy.ALUOut = mem_wb.ALUOut;
+    ifSection();
+    idSection();
+    exSection();
+    memSection();
+    wbSection();
+
+    /* Start Updating the Copies */
+    if_id_cpy.nPC = if_id.nPC;
+    if_id_cpy.IR = if_id.IR;
+
+    id_ex_cpy.opcode = id_ex.opcode;
+    id_ex_cpy.func_code = id_ex.func_code;
+    id_ex_cpy.nPC = id_ex.nPC;
+    id_ex_cpy.RS = id_ex.RS;
+    id_ex_cpy.RT = id_ex.RT;
+    id_ex_cpy.RD = id_ex.RD;
+    id_ex_cpy.immed = id_ex.immed;
+    id_ex_cpy.A = id_ex.A;
+    id_ex_cpy.B = id_ex.B;
+    id_ex_cpy.seimmed = id_ex.seimmed;
+
+    ex_mem_cpy.BrTgt = ex_mem.BrTgt;
+    ex_mem_cpy.Zero = ex_mem.Zero;
+    ex_mem_cpy.ALUOut = ex_mem.ALUOut;
+    ex_mem_cpy.RD = ex_mem.RD;
+    ex_mem_cpy.B = ex_mem.B;
+    ex_mem_cpy.regWrite = ex_mem.regWrite;
+    ex_mem_cpy.memWrite = ex_mem.memWrite;
+    ex_mem_cpy.memRead = ex_mem.memRead;
+
+    mem_wb_cpy.RD = mem_wb.RD;
+    mem_wb_cpy.memData = mem_wb.memData;
+    mem_wb_cpy.ALUOut = mem_wb.ALUOut;
 
   }
 
 }
+
