@@ -91,6 +91,7 @@ struct MEMWB {
   uint32_t RD;
   uint32_t memData;
   uint32_t ALUOut;
+  uint32_t regWrite;
 };
 
 if_id = IFID(0, 0);
@@ -317,6 +318,38 @@ void advance_pc(uint32_t offset)
    nPC  += offset;
 }
 
+void handleException(bool isArithmetic) {
+  PC = 0x8000;
+  // in the EX stage
+  if_id.nPC = 0;
+  if_id.IR = 0;
+
+  id_ex.opcode = 0;
+  id_ex.func_code = 0;
+  id_ex.nPC = 0;
+  id_ex.RS = 0;
+  id_ex.RT = 0;
+  id_ex.RD = 0;
+  id_ex.immed = 0;
+  id_ex.A = 0;
+  id_ex.B = 0;
+  id_ex.seimmed = 0;
+
+  if (isArithmetic) {
+    /* Start Updating the Copies */
+    ex_mem.BrTgt = 0;
+    ex_mem.Zero = 0;
+    ex_mem.ALUOut = 0;
+    ex_mem.RD = 0;
+    ex_mem.B = 0;
+    ex_mem.regWrite = 0;
+    ex_mem.memWrite = 0;
+    ex_mem.memRead = 0;
+  }
+  PC = 0x8000;
+  nPC = PC + WORD_SIZE;
+}
+
 // IF section code
 void ifSection() {
     /* IF section  */
@@ -333,6 +366,210 @@ void ifSection() {
     /* ID section  */
 }
 
+// determines if an instruction is a regWrite instruction
+bool isRegWrite(uint32_t opcode, uint32_t func_code) {
+  switch (opcode) {
+    case 0x0:
+      if (func_code == 0x8) {
+        return false;
+      }
+      break;
+    case 0x2:
+      return false;
+      break;
+    case 0x3:
+      return false;
+      break;
+    case 0x28:
+      return false;
+      break;
+    case 0x29:
+      return false;
+      break;
+    case 0x2b:
+      return false;
+      break;
+    default:
+      return true;
+      break;
+  }
+  return true;
+}
+
+bool isValidInstruction(uint32_t opcode, uint32_t func_code) {
+            switch (opCode){
+            // r-type instructions
+            case 0:
+            {
+                switch (func_code)
+                {
+                    // add 
+                    case 0x20:
+                    {
+                      return true;
+                      break;
+                    }
+                    // addu
+                    case 0x21:
+                    return true;
+                      break;
+                    // and
+                    case 0x24:
+                    return true;
+                      break;
+                    // jr
+                    case 0x08:
+                    {
+                      return true;
+                      break;
+                    }
+                    // nor
+                    case 0x27:
+                      return true;
+                      break;
+                    // or
+                    case 0x25:
+                      return true;
+                      break;
+                    // slt (signed)
+                    case 0x2a:
+                        return true;
+                        break;
+                    // sltu
+                    case 0x2b:
+                        return true;
+                        break;
+                    // sll
+                    case 0x00:
+                        return true;
+                        break;
+                    // srl
+                    case 0x02:
+                        return true;
+                        break;
+                    // sub (signed)
+                    case 0x22:
+                    {
+                        return true;
+                        break;
+                    }
+                    // subu
+                    case 0x23:
+                        return true;
+                        break;
+              }
+            break;
+            }
+        // jump address
+        case 2: 
+        {
+            return true;
+            break;
+        }
+        // jump and link
+        case 3:
+        {
+            return true;
+            break;
+        }
+        // rest are I-Types
+        case 0x8:
+        {
+            return true;
+            break;
+        }
+        case 0x9:
+        {
+            return true;
+            break;
+        }
+        case 0xc:
+        {
+            return true;
+            break;
+        }
+        case 0x4:
+        {
+            return true;
+            break;
+        }
+        case 0x5:
+        {
+            return true;
+            break;
+        }
+        case 0x24:
+        {
+            return true;
+            break;
+        }
+        case 0x25:
+        {
+            return true;
+            break;
+        }
+        case 0xf:
+        {
+            return true;
+            // load upper immediate
+            break;
+        }
+        case 0x23:
+        {
+            return true;
+            break;
+        }
+        case 0xd:
+        {
+            return true;
+            break;
+        }
+        case 0xa:
+        {
+            return true;
+            break;
+        }
+        case 0xb:
+        {
+            return true;
+          break;
+        }
+        case 0x28:
+        {
+            return true;
+          // store byte
+          break;
+        }
+        case 0x29:
+        {
+            return true;
+          // store halfword 
+          break;
+        }
+        case 0x2b:
+        {
+            return true;
+          // store word
+          break;
+        }
+        case 0x6:
+        {
+            return true;
+          break;
+        }
+        case 0x7:
+        {
+            return true;
+          break;            
+        }
+    }
+    return false;
+
+}
+
+
+
+
 void idSection() {
     // retrieve and decode the instruction
     instruction = if_id_cpy.ir;
@@ -347,6 +584,11 @@ void idSection() {
     id_ex.B = reg[id_ex.RT];
     id_ex.shamt = instruction << 21 >> 27;
     id_ex.seimmed = (id_ex.immed >> 15 == 0) ? (uint32_t)id_ex.immed : ((uint32_t)id_ex.immed | 0xffff0000);
+
+    if (!isValidInstruction(id_ex.opcode, id_ex.func_code)) {
+      handleException(false);
+      break;
+    }
 
     uint32_t mostSig_ex = imm >> 15; // most significant bit in immediate
     uint32_t imm_ex = 0;
@@ -431,17 +673,33 @@ void exSection() {
       ex_mem.RD = rt;
     }
 
-
-    bool regWrite = false;
+    bool regWrite = isRegWrite(opCode, func_code);
     bool memWrite = false;
     bool memRead = false;
+
+    /* TODO: Review EX Hazard Forwarding */ 
+    if ((regWrite && (RD != 0)) && (RD == id_ex.RS)) {
+      A = ex_mem.ALUOut;
+    }
+    if ((regWrite && (RD != 0)) && (RD == id_ex.RT)) {
+      B = ex_mem.ALUOut;
+    }
+
+/* TODO: Memory Hazards 
+      // Memory Hazards
+    if ((mem_wb.regWrite && (mem_wb.RD != 0)) && !((mem_wb_cpy.regWrite && (mem_wb_cpy.RD != 0)) &&
+      (mem_wb_cpy.RD == id_ex_cpy.RS) && (mem_wb.RD == id_ex_Cpy.RS)) 
+      {
+        // First ALU operand is forwarded from WB result
+        A = mem_wb.memData;
+      }
+*/
 
     // switch based on op-code.
     switch (opCode) {
       // r-type instructions
       case 0:
       {
-        regWrite = true;
         // nested switch statements based on function code 
         // for r-type instructions.
         switch (func_code)
@@ -457,8 +715,8 @@ void exSection() {
                   if (sigbit_rd != sigbit_rs) {
                       // dump registers
                       /* TODO: Handle Exceptions! */
-                      fprintf(stderr, "Overflow exception");
-                      exit(12);
+                      handleException(true);
+                      break;
                   }
               }
               ex_mem.ALUOut = res;
@@ -506,16 +764,15 @@ void exSection() {
               if ((sigbit_rs == 0) && (sigbit_rt == 1)) {
                   if (sigbit_rd == 1) {
                       /* TODO: Handle Exceptions! */
-                      fprintf(stderr, "Overflow exception");
-                      exit(12);
+                      handleException(true);
+                      break;
                   }
               }
               else if ((sigbit_rs == 1) && (sigbit_rt == 0)) {
                   if (sigbit_rd == 0) {
                       /* TODO: Handle Exceptions! */
-                      fprintf(stderr, "Overflow  exception");
-                      delete myMem;
-                      exit(12);
+                      handleException(true);
+                      break;
                   }
               }
               ex_mem.ALUOut = res;
@@ -531,7 +788,6 @@ void exSection() {
     // rest are I-Types
     case 0x8:
     {
-        regWrite = true;
         // add-immediate
         // sign extend in c++, get the most significant bit
         if (mostSig == 1) {
@@ -544,8 +800,8 @@ void exSection() {
         if (sigbit_rs == sigbit_imm) {
             if (sigbit_rd != sigbit_rs) {
                 /* TODO: Handle Exception! */
-                fprintf(stderr, "Overflow exception");
-                exit(12);
+                handleException(true);
+                break;
             }
         }
         ex_mem.ALUOut = res;
@@ -553,7 +809,6 @@ void exSection() {
     }
     case 0x9:
     {
-        regWrite = true;
         // add-immediate unsigned
         // sign extend in c++, get the most significant bit
         if (mostSig == 1) {
@@ -564,21 +819,18 @@ void exSection() {
     }
     case 0xc:
     {
-        regWrite = true;
         // and immediate unsigned
         ex_mem.ALUOut = A & imm;
         break;
     }
     case 0xd:
     {
-        regWrite = true;
         // or immediate
         ex_mem.ALUOut = A | imm;
         break;
     }
     case 0xa:
     {
-        regWrite = true;
         // set less than immediate
         if (mostSig == 1) {
             imm = imm | 0xffff0000;
@@ -588,14 +840,12 @@ void exSection() {
     }
     case 0xb:
     {
-        regWrite = true;
         // set less than immediate unsigned
         ex_mem.ALUOut = (A < imm) ? 1 : 0;
         break;
     }
     case 0x24:
     {
-      regWrite = true;
         // load byte unsigned
         // sign extend the imm variable
         if (mostSig == 1) {
@@ -609,7 +859,6 @@ void exSection() {
     }
     case 0x25:
     {
-      regWrite = true;
         // load half word unsigned
         // sign extend the imm variable
         if (mostSig == 1) {
@@ -623,7 +872,6 @@ void exSection() {
     }
     case 0xf:
     {
-      regWrite = true;
         // load upper immediate
         ex_mem.ALUOut = (imm << 16);
         memRead = true;
@@ -631,7 +879,6 @@ void exSection() {
     }
     case 0x23:
     {
-      regWrite = true;
         // load word
         uint32_t res = 0;
         if (mostSig == 1) {
@@ -645,7 +892,6 @@ void exSection() {
     }
     case 0xd:
     {
-      regWrite = true;
         // or immediate
         ex_mem.ALUOut = A | imm;
         break;
@@ -698,14 +944,9 @@ void exSection() {
       ex_mem.ALUOut = value;
       break;
     }
-    default:
-    {
-        /* TODO: HANDLE EXCEPTIONS! */
-        // if it hits this case, exit with error 127.
-        fprintf(stderr, "Illegal operation ...");
-        // dump registers
-        exit(127);
-    }
+  }
+  if (rd == 0) {
+    regWrite = false;
   }
   ex_mem.memRead = memRead;
   ex_mem.memWrite = memWrite;
@@ -717,11 +958,28 @@ void exSection() {
 
 void memSection() {
   /* Begin Mem Section */
+
+  // MEM hazard
+  // if (MEM_WB_Ctrl.RegWrite && (MEM_WB_Reg.RD != 0) &&
+  //     !(EX_MEM_Ctrl.RegWrite && (EX_MEM_Reg.RD != 0) &&
+  //       (EX_MEM_Reg.RD == ID_EX_Reg.RS)) &&
+  //     (MEM_WB_Ctrl.RD == ID_EX_Reg.RS))
+  //   HZD.FwdA = 0b01;
+  // if (MEM_WB_Ctrl.RegWrite && (MEM_WB_Reg.RD != 0) &&
+  //     !(EX_MEM_Ctrl.RegWrite && (EX_MEM_Reg.RD != 0) &&
+  //       (EX_MEM_Reg.RD == ID_EX_Reg.RT)) &&
+  //     (MEM_WB_Ctrl.RD == ID_EX_Reg.RT))
+  //   HZD.FwdB = 0b01;
+
   mem_wb.RD = ex_mem_cpy.RD;
   mem_wb.ALUOut = ex_mem_cpy.ALUOut;
+  mem_wb.regWrite = ex_mem_cpy.regWrite;
   uint32_t storeData = 0;
+
+
   bool memRead_mem = ex_mem_cpy.memRead;
   bool memWrite_mem = ex_mem_cpy.memWrite;
+  bool regWrite = ex_mem_cpy.regWrite;  
 
   if (memRead_mem) {
     bool hit = cacheAccess(false, ex_mem_cpy.ALUOut, &storeData, true)
@@ -756,11 +1014,11 @@ int runCycles(uint32_t cycles) {
 
   while (cyclesElapsed < cycles) {
 
-    ifSection();
-    idSection();
-    exSection();
-    memSection();
     wbSection();
+    memSection();
+    exSection();
+    idSection();
+    ifSection();
 
     /* Start Updating the Copies */
     if_id_cpy.nPC = if_id.nPC;
@@ -789,6 +1047,7 @@ int runCycles(uint32_t cycles) {
     mem_wb_cpy.RD = mem_wb.RD;
     mem_wb_cpy.memData = mem_wb.memData;
     mem_wb_cpy.ALUOut = mem_wb.ALUOut;
+    mem_wb_cpy.regWrite = mem_wb.regWrite;
 
   }
 
