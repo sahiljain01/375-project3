@@ -63,25 +63,32 @@ int main(int argc, char **argv)
     }
 
     CacheConfig icConfig;
-    icConfig.cacheSize = 1024;
-    icConfig.blockSize = 64;
-    icConfig.type = DIRECT_MAPPED;
+    icConfig.cacheSize = 32;
+    icConfig.blockSize = 8;
+    icConfig.type = TWO_WAY_SET_ASSOC;
     icConfig.missLatency = 5;
     CacheConfig dcConfig = icConfig;
 
     initSimulator(icConfig, dcConfig, mem);
+    uint32_t* write_data = (uint32_t*)malloc(4);
+    *write_data = 0xdefaced;
     uint32_t* data = (uint32_t*)malloc(4);
-    bool isHit = cacheAccess(true, 0x0, data, true);
-    //isHit = cacheAccess(true, 0x4, data, true);
+    bool isHit = cacheAccess(ICACHE, 0x0, data, READ, WORD_SIZE);
+    isHit = cacheAccess(ICACHE, 0x8, data, READ, WORD_SIZE);
+    isHit = cacheAccess(ICACHE, 0x10, data, READ, WORD_SIZE);
+    isHit = cacheAccess(ICACHE, 0x8, write_data, WRITE, WORD_SIZE);
+    *write_data = 0xba;
+    isHit = cacheAccess(ICACHE, 0x13, write_data, WRITE, BYTE_SIZE);
+    isHit = cacheAccess(ICACHE, 0xa, data, READ, HALF_SIZE);
     cout << "Is hit: " << boolalpha << isHit << endl;
-    cout << "Data: " << hex << *data << endl;
+    cout << "Data: 0x" << hex << *data << endl;
     printStats();
 
     // runCycles(10);
 
     // runTillHalt();
 
-    // finalizeSimulator();
+    finalizeSimulator();
 
     delete mem;
     return 0;
