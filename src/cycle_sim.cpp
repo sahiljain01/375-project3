@@ -653,10 +653,11 @@ void ifSection() {
       return;
     }
 
-    bool hit = cacheAccess(true, PC, &instruction, true);
-    if (!hit) {
-      // TODO: Add stalling logic here.
-    }
+    // bool hit = cacheAccess(true, PC, &instruction, true);
+    // if (!hit) {
+    //   // TODO: Add stalling logic here.
+    // }
+    myMem->getMemValue(PC, instruction, WORD_SIZE);
 
     if (!feedfeed_hit) {
       if_id.nPC = PC + 4;
