@@ -673,7 +673,7 @@ void ifSection() {
 
 void idSection() {
     // retrieve and decode the instruction
-    uint32_t instruction = if_id_cpy.ir;
+    uint32_t instruction = if_id_cpy.IR;
     load_use_stall = false;
     id_ex.opcode = instruction >> 26;
     id_ex.RS = instruction << 6 >> 27;
@@ -750,7 +750,7 @@ void idSection() {
       }
       else if ((ex_mem_cpy.regWrite && (ex_mem_cpy.RD != 0)) && (ex_mem_cpy.RD == id_ex.RT)) {
         instruction = 0;
-        id_ex = 0;
+        id_ex = IDEX();
         load_use_stall = true;
       }
       // case when we have a load, and then a branch
@@ -1195,7 +1195,7 @@ bool wbSection() {
     return true;
   }
 
-  if (regWrite) {
+  if (mem_wb_cpy.regWrite) {
     reg[mem_wb_cpy.RD] = mem_wb_cpy.ALUOut;
   }
 
@@ -1235,22 +1235,15 @@ int runCycles(uint32_t cycles) {
     exSection();
     idSection();
     ifSection();
-    //     uint32_t cycle;
-    // uint32_t ifInstr;
-    // uint32_t idInstr;
-    // uint32_t exInstr;
-    // uint32_t memInstr;
-    // uint32_t wbInstr;
-
 
     PipeState ps;
-    ps.cycles = cyclesElapsed;
+    ps.cycle = cyclesElapsed;
     ps.ifInstr = if_id.IR;
     ps.idInstr = id_ex.IR;
     ps.exInstr = ex_mem.IR;
     ps.memInstr = mem_wb.IR;
     ps.wbInstr = wb_instruction;
-    
+
     dumpPipeState(ps);
 
     if (halt) {
@@ -1261,6 +1254,7 @@ int runCycles(uint32_t cycles) {
     if_id_cpy.nPC = if_id.nPC;
     if_id_cpy.IR = if_id.IR;
 
+    id_ex_cpy.IR = id_ex.IR;
     id_ex_cpy.opcode = id_ex.opcode;
     id_ex_cpy.func_code = id_ex.func_code;
     id_ex_cpy.nPC = id_ex.nPC;
@@ -1271,7 +1265,11 @@ int runCycles(uint32_t cycles) {
     id_ex_cpy.A = id_ex.A;
     id_ex_cpy.B = id_ex.B;
     id_ex_cpy.seimmed = id_ex.seimmed;
+    id_ex_cpy.shamt = id_ex.shamt;
+    id_ex_cpy.memRead = id_ex.memRead;
+    id_ex_cpy.regWrite = id_ex.regWrite;
 
+    ex_mem_cpy.IR = ex_mem.IR;
     ex_mem_cpy.BrTgt = ex_mem.BrTgt;
     ex_mem_cpy.Zero = ex_mem.Zero;
     ex_mem_cpy.ALUOut = ex_mem.ALUOut;
@@ -1281,10 +1279,13 @@ int runCycles(uint32_t cycles) {
     ex_mem_cpy.memWrite = ex_mem.memWrite;
     ex_mem_cpy.memRead = ex_mem.memRead;
 
+    mem_wb_cpy.IR = mem_wb.IR;
     mem_wb_cpy.RD = mem_wb.RD;
     mem_wb_cpy.memData = mem_wb.memData;
     mem_wb_cpy.ALUOut = mem_wb.ALUOut;
     mem_wb_cpy.regWrite = mem_wb.regWrite;
+
+    cyclesElapsed++;
 
   }
 
