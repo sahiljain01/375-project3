@@ -51,6 +51,7 @@ static RegisterInfo regInfo;
 static uint32_t PC = 0x00000000;
 static uint32_t nPC = WORD_SIZE;
 static uint32_t cyclesElapsed = 0;
+ static uint32_t PC_cpy = 0x00000000;
 
 uint32_t icHits = 0;
 uint32_t icMisses = 0;
@@ -80,6 +81,7 @@ struct IDEX {
   uint32_t shamt;
   bool memRead;
   bool regWrite;
+  bool insertedNOP;
 };
 
 struct EXMEM {
@@ -658,10 +660,10 @@ void ifSection() {
     // if (!hit) {
     //   // TODO: Add stalling logic here.
     // }
-    myMem->getMemValue(PC, instruction, WORD_SIZE);
+    myMem->getMemValue(PC_cpy, instruction, WORD_SIZE);
 
     if (!feedfeed_hit) {
-      nPC = PC + 4;
+      PC_cpy = PC;
       if_id.nPC = PC + 4;
       if_id.IR = instruction;
     }
@@ -963,7 +965,9 @@ void exSection() {
           // sll
           case 0x00:
             ex_mem.ALUOut = (B << shamt);
-            advance_pc(4);
+            if (!load_use_stall) {
+              advance_pc(4);
+            }
             break;
           // srl
           case 0x02:
