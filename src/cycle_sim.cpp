@@ -76,6 +76,7 @@ struct IDEX {
   uint32_t A;
   uint32_t B; 
   uint32_t seimmed;
+  uint32_t shamt;
   bool memRead;
   bool regWrite;
 };
@@ -461,9 +462,6 @@ bool isRegWrite(uint32_t opcode, uint32_t func_code) {
     case 0x2:
       return false;
       break;
-    case 0x3:
-      return false;
-      break;
     case 0x28:
       return false;
       break;
@@ -662,7 +660,7 @@ void ifSection() {
 
     if (!feedfeed_hit) {
       if_id.nPC = PC + 4;
-      if_id.ir = instruction;
+      if_id.IR = instruction;
     }
 
     if (instruction == 0xfeedfeed) {
@@ -737,32 +735,33 @@ void idSection() {
       isBranch = true;
 
       // case when we have a load, 2 things in the middle, and then a branch
-      if ((mem_wb_cpy.regWrite && (mem_wb_cpy.rd != 0)) && (mem_wb_cpy.rd == id_ex.rs)) {
+      if ((mem_wb_cpy.regWrite && (mem_wb_cpy.RD != 0)) && (mem_wb_cpy.RD == id_ex.RS)) {
         id_ex.A = mem_wb_cpy.memData;
       }
-      else if ((mem_wb_cpy.regWrite && (mem_wb_cpy.rd != 0)) && (mem_wb_cpy.rd == id_ex.rt)) {
+      else if ((mem_wb_cpy.regWrite && (mem_wb_cpy.RD != 0)) && (mem_wb_cpy.RD == id_ex.RT)) {
         id_ex.B = mem_wb_cpy.memData;
       }
       // case when we have a load, 1 thing in the middle, and then a branch (stall by 1 cycles)
-      if ((ex_mem_cpy.regWrite && (ex_mem_cpy.rd != 0)) && (ex_mem_cpy.rd == id_ex.rs)) {
+      if ((ex_mem_cpy.regWrite && (ex_mem_cpy.RD != 0)) && (ex_mem_cpy.RD == id_ex.RS)) {
         instruction = 0;
-        id_ex = IDEX(0, 0, 0, 0, 0, 0, 0);
+        id_ex = IDEX();
+        
         load_use_stall = true;
       }
-      else if ((ex_mem_cpy.regWrite && (ex_mem_cpy.rd != 0)) && (ex_mem_cpy.rd == id_ex.rt)) {
+      else if ((ex_mem_cpy.regWrite && (ex_mem_cpy.RD != 0)) && (ex_mem_cpy.RD == id_ex.RT)) {
         instruction = 0;
-        id_ex = IDEX(0, 0, 0, 0, 0, 0, 0);
+        id_ex = 0;
         load_use_stall = true;
       }
       // case when we have a load, and then a branch
-      if ((id_ex_cpy.regWrite && (id_ex_cpy.rd != 0)) && (id_ex_cpy.rd == id_ex.rs)) {
+      if ((id_ex_cpy.regWrite && (id_ex_cpy.RD != 0)) && (id_ex_cpy.RD == id_ex.RS)) {
         instruction = 0;
-        id_ex = IDEX(0, 0, 0, 0, 0, 0, 0);
+        id_ex = IDEX();
         load_use_stall = true;
       }
-      else if ((id_ex_cpy.regWrite && (id_ex_cpy.rd != 0)) && (id_ex_cpy.rd == id_ex.rt)) {
+      else if ((id_ex_cpy.regWrite && (id_ex_cpy.RD != 0)) && (id_ex_cpy.RD == id_ex.RT)) {
         instruction = 0;
-        id_ex = IDEX(0, 0, 0, 0, 0, 0, 0);
+        id_ex = IDEX();
         load_use_stall = true;
       }
 
@@ -771,11 +770,11 @@ void idSection() {
       // case where we have an add, smt in the middle, and then a branch
       if ((ex_mem_cpy.regWrite && (ex_mem_cpy.RD != 0)) && (id_ex.RD == id_ex.RS)) {
         // no stall
-        id_ex.A = ex_mem_cpy.ALUOUt;
+        id_ex.A = ex_mem_cpy.ALUOut;
       }
       if ((ex_mem_cpy.regWrite && (ex_mem_cpy.RD != 0)) && (id_ex.RD == id_ex.RT)) {
         // no stall
-        id_ex.B = ex_mem_cpy.ALUOUt;
+        id_ex.B = ex_mem_cpy.ALUOut;
       }
 
       // case where we have an add, and then a branch
@@ -783,25 +782,20 @@ void idSection() {
       if ((id_ex_cpy.regWrite && (id_ex_cpy.RD != 0)) && (id_ex.RD == id_ex.RS)) {
         // stall by 1 cycle
         instruction = 0;
-        id_ex = IDEX(0, 0, 0, 0, 0, 0, 0);
+        id_ex = IDEX();
         load_use_stall = true;
       }
       if ((id_ex_cpy.regWrite && (id_ex_cpy.RD != 0)) && (id_ex.RD == id_ex.RT)) {
         // stall by 1 cycle
         instruction = 0;
-        id_ex = IDEX(0, 0, 0, 0, 0, 0, 0);
+        id_ex = IDEX();
         load_use_stall = true;
       }
 
 
     }
-    // mem hazard forwarding to ID stage bc of branches
-    
 
-    // add 2, 2, 2
-    // beq 2, 3
-
-    uint32_t mostSig_ex = imm >> 15; // most significant bit in immediate
+    uint32_t mostSig_ex = id_ex.immed >> 15; // most significant bit in immediate
     uint32_t imm_ex = 0;
     /* Determine if it's a branch. Enter Code Here */
     switch (id_ex.opcode) {
@@ -849,7 +843,6 @@ void idSection() {
         }
         break;
       default:
-        branchTaken = false;
         break;
     }
 
@@ -860,36 +853,34 @@ void exSection() {
     /* Start of EX Section */ 
     int opCode = id_ex_cpy.opcode;
     // initialize variables, rs, rt, rd, imm, mostSig
-    uint32_t rs = id_ex_copy.RS; // operand
-    uint32_t rt = id_ex_copy.RT; // destination operand for imm instructions
-    uint32_t rd = id_ex_copy.RD; // destination operand 
-    uint32_t imm = id_ex_copy.immed; // immediate address
+    uint32_t rs = id_ex_cpy.RS; // operand
+    uint32_t rt = id_ex_cpy.RT; // destination operand for imm instructions
+    uint32_t rd = id_ex_cpy.RD; // destination operand 
+    uint32_t imm = id_ex_cpy.immed; // immediate address
     uint32_t mostSig = imm >> 15; // most significant bit in immediate
-    uint32_t func_code = id_ex_copy.func_code;
-    uint32_t A = id_ex_copy.A;
-    uint32_t B = id_ex_copy.B;
-    uint32_t shamt = id_ex_copy.shamt;
+    uint32_t func_code = id_ex_cpy.func_code;
+    uint32_t A = id_ex_cpy.A;
+    uint32_t B = id_ex_cpy.B;
+    uint32_t shamt = id_ex_cpy.shamt;
 
     /* intialize some EXMEM register variables */
-    ex_mem.B = id_ex_copy.B;
-    ex_mem.IR = id_ex_copy.IR;
+    ex_mem.B = id_ex_cpy.B;
+    ex_mem.IR = id_ex_cpy.IR;
+
+    bool regWrite = isRegWrite(opCode, func_code);
+    bool memWrite = false;
+    bool memRead = false;
 
     if (opCode == 0) {
       ex_mem.RD = rd;
     }
     else if (opCode == 0x3) {
       ex_mem.RD = rd;
-      ex_mem.B = id_ex_copy.A;
-      regWrite = true;
+      ex_mem.B = id_ex_cpy.A;
     }
     else {
       ex_mem.RD = rt;
     }
-
-    bool regWrite = isRegWrite(opCode, func_code);
-    bool memWrite = false;
-    bool memRead = false;
-
     // lw r0, 5
     // add r0, r0, r0
 
@@ -906,7 +897,7 @@ void exSection() {
       B = mem_wb_cpy.memData;
     }
     if (ex_fwd_B == 2) {
-      B = ex_mem_cpy.ALUOUt;
+      B = ex_mem_cpy.ALUOut;
     }
 
     // switch based on op-code.
@@ -1103,12 +1094,6 @@ void exSection() {
         memRead = true;
         break;
     }
-    case 0xd:
-    {
-        // or immediate
-        ex_mem.ALUOut = A | imm;
-        break;
-    }
     case 0x28:
     {
       regWrite = false;
@@ -1184,17 +1169,20 @@ void memSection() {
   bool regWrite = ex_mem_cpy.regWrite;  
 
   if (memRead_mem) {
-    bool hit = cacheAccess(false, ex_mem_cpy.ALUOut, &storeData, true)
+    // bool hit = cacheAccess(false, ex_mem_cpy.ALUOut, &storeData, true);
+    // mem_wb.memData = storeData;
+    // if (!hit) {
+    //   /* TODO: Work on Cache Latency / Stall Here As Well */
+    // }
+    myMem->getMemValue(ex_mem_cpy.ALUOut, storeData, WORD_SIZE);
     mem_wb.memData = storeData;
-    if (!hit) {
-      /* TODO: Work on Cache Latency / Stall Here As Well */
-    }
   }
-  if (memWrite) {
-    bool hit = cacheAccess(false, ex_mem_cpy.ALUOut, ex_mem_cpy.B, false)
-    if (!hit) {
-      /* TODO: Work on Cache Latency / Stall Here As Well */
-    }
+  if (memWrite_mem) {
+    // bool hit = cacheAccess(false, ex_mem_cpy.ALUOut, ex_mem_cpy.B, false);
+    // if (!hit) {
+    //   /* TODO: Work on Cache Latency / Stall Here As Well */
+    // }
+    myMem->setMemValue(ex_mem_cpy.ALUOut, ex_mem_cpy.B, WORD_SIZE);
   }
 
   /* End of Mem Section */ 
@@ -1228,17 +1216,17 @@ int runCycles(uint32_t cycles) {
     ex_fwd_A = 0;
     ex_fwd_B = 0;
 
-    if ((regWrite && (RD != 0)) && (RD == id_ex.RS)) {
+    if ((ex_mem.regWrite && (ex_mem.RD != 0)) && (ex_mem.RD == id_ex.RS)) {
       ex_fwd_A = 2;
     }
-    if ((regWrite && (RD != 0)) && (RD == id_ex.RT)) {
+    if ((ex_mem.regWrite && (ex_mem.RD != 0)) && (ex_mem.RD == id_ex.RT)) {
       ex_fwd_B = 2;
     }
 
-    if ((mem_wb.regWrite && (mem_wb.rd != 0)) && !(ex_mem.regWrite && (ex_mem.rd != 0) && (ex_mem.rd == id_ex.rs)) && (mem_wb.rd == id_ex.rs)) {
+    if ((mem_wb.regWrite && (mem_wb.RD != 0)) && !(ex_mem.regWrite && (ex_mem.RD != 0) && (ex_mem.RD == id_ex.RS)) && (mem_wb.RD == id_ex.RS)) {
       ex_fwd_A = 1;
     }
-    else if ((mem_wb.regWrite && (mem_wb.rd != 0)) && !(ex_mem.regWrite && (ex_mem.rd != 0) && (ex_mem.rd == id_ex.rt)) && (mem_wb.rd == id_ex.rt)) {
+    else if ((mem_wb.regWrite && (mem_wb.RD != 0)) && !(ex_mem.regWrite && (ex_mem.RD != 0) && (ex_mem.RD == id_ex.RT)) && (mem_wb.RD == id_ex.RT)) {
       ex_fwd_B = 1;
     }
     
@@ -1247,9 +1235,22 @@ int runCycles(uint32_t cycles) {
     exSection();
     idSection();
     ifSection();
-    
+    //     uint32_t cycle;
+    // uint32_t ifInstr;
+    // uint32_t idInstr;
+    // uint32_t exInstr;
+    // uint32_t memInstr;
+    // uint32_t wbInstr;
 
-    PipeState ps = PipeState(cyclesElapsed, if_id.IR, id_ex.IR, ex_mem.IR, mem_wb.IR, wb_instruction);
+
+    PipeState ps;
+    ps.cycles = cyclesElapsed;
+    ps.ifInstr = if_id.IR;
+    ps.idInstr = id_ex.IR;
+    ps.exInstr = ex_mem.IR;
+    ps.memInstr = mem_wb.IR;
+    ps.wbInstr = wb_instruction;
+    
     dumpPipeState(ps);
 
     if (halt) {
