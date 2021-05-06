@@ -104,14 +104,14 @@ bool receivedIR = false;
 bool feedfeed_hit = false;
 bool load_use_stall = false;
 
-IFID if_id = IFID(0, 0);
-IDEX id_ex = IDEX(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-EXMEM ex_mem = EXMEM(0, 0, 0 ,0, 0, 0, 0, 0, 0);
-MEMWB mem_wb = MEMWB(0, 0, 0, 0, 0);
-IFID if_id_cpy = IFID(0, 0);
-IDEX id_ex_cpy = IDEX(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-EXMEM ex_mem_cpy = EXMEM(0, 0, 0 ,0, 0, 0, 0, 0, 0);
-MEMWB mem_wb_cpy = MEMWB(0, 0, 0, 0, 0);
+IFID if_id;
+IDEX id_ex;
+EXMEM ex_mem;
+MEMWB mem_wb;
+IFID if_id_cpy;
+IDEX id_ex_cpy;
+EXMEM ex_mem_cpy;
+MEMWB mem_wb_cpy;
 
 uint32_t ex_fwd_A = 0;
 uint32_t ex_fwd_B = 0;
