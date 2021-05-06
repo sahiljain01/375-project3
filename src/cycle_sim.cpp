@@ -200,7 +200,7 @@ static void dump(MemoryStore* mem, uint32_t* reg) {
 int finalizeSimulator() {
    // Print simulation stats to sim_stats.out file
    SimulationStats final_stats;
-   final_stats.totalCycles = totalCycles;
+   final_stats.totalCycles = cyclesElapsed;
    final_stats.icHits = icHits;
    final_stats.icMisses = icMisses;
    final_stats.dcHits = dcHits;
@@ -660,6 +660,7 @@ void ifSection() {
     myMem->getMemValue(PC, instruction, WORD_SIZE);
 
     if (!feedfeed_hit) {
+      nPC = PC + 4;
       if_id.nPC = PC + 4;
       if_id.IR = instruction;
     }
@@ -1286,7 +1287,7 @@ int runCycles(uint32_t cycles) {
     mem_wb_cpy.ALUOut = mem_wb.ALUOut;
     mem_wb_cpy.regWrite = mem_wb.regWrite;
 
-    cyclesElapsed++;
+    cyclesElapsed = cyclesElapsed + 1;
 
   }
 
