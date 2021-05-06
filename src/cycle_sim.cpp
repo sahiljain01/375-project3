@@ -50,6 +50,7 @@ static RegisterInfo regInfo;
 
 static uint32_t PC = 0x00000000;
 static uint32_t nPC = WORD_SIZE;
+static uint32_t cyclesElapsed = 0;
 
 uint32_t icHits = 0;
 uint32_t icMisses = 0;
@@ -1208,8 +1209,6 @@ bool wbSection() {
 
 // run cycles function
 int runCycles(uint32_t cycles) {
-
-  uint32_t cyclesElapsed = 0;
 
   while (cyclesElapsed < cycles) {
 
