@@ -51,7 +51,7 @@ static RegisterInfo regInfo;
 static uint32_t PC = 0x00000000;
 static uint32_t nPC = WORD_SIZE;
 static uint32_t cyclesElapsed = 0;
- static uint32_t PC_cpy = 0x00000000;
+static uint32_t PC_cpy = 0x00000000;
 
 uint32_t icHits = 0;
 uint32_t icMisses = 0;
@@ -120,6 +120,7 @@ MEMWB mem_wb_cpy;
 uint32_t ex_fwd_A = 0;
 uint32_t ex_fwd_B = 0;
 uint32_t wb_instruction = 0;
+uint32_t if_instruction = 0;
 
 /* End of Global Variable Definitions */
 
@@ -663,6 +664,7 @@ void ifSection() {
     myMem->getMemValue(PC_cpy, instruction, WORD_SIZE);
 
     if (!feedfeed_hit) {
+      if_instruction = instruction;
       PC_cpy = PC;
       if_id.nPC = PC + 4;
       if_id.IR = instruction;
@@ -810,7 +812,7 @@ void idSection() {
             advance_pc(id_ex.seimmed << 2);
         }
         break;
-      // bneq
+      // bne
       case (0x5):
         if (id_ex.A != id_ex.B) {
             advance_pc(id_ex.seimmed << 2);
@@ -1267,11 +1269,11 @@ int runCycles(uint32_t cycles) {
 
     PipeState ps;
     ps.cycle = cyclesElapsed;
-    ps.ifInstr = if_id.IR;
-    ps.idInstr = id_ex.IR;
-    ps.exInstr = ex_mem.IR;
-    ps.memInstr = mem_wb.IR;
-    ps.wbInstr = wb_instruction;
+    ps.ifInstr = if_instruction;
+    ps.idInstr = if_id_cpy.IR;
+    ps.exInstr = id_ex_cpy.IR;
+    ps.memInstr = ex_mem_cpy.IR;
+    ps.wbInstr = mem_wb_cpy.IR;
 
     dumpPipeState(ps);
 
