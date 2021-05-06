@@ -104,14 +104,14 @@ bool receivedIR = false;
 bool feedfeed_hit = false;
 bool load_use_stall = false;
 
-if_id = IFID(0, 0);
-id_ex = IDEX(0, 0, 0, 0, 0, 0, 0);
-ex_mem = EXMEM(0, 0, 0 ,0);
-mem_wb = MEMWB(0, 0, 0);
-if_id_cpy = IFID(0, 0);
-id_ex_cpy = IDEX(0, 0, 0, 0, 0, 0, 0);
-ex_mem_cpy = EXMEM(0, 0, 0, 0);
-mem_wb_cpy = MEMWB(0, 0, 0);
+IFID if_id = IFID(0, 0);
+IDEX id_ex = IDEX(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+EXMEM ex_mem = EXMEM(0, 0, 0 ,0, 0, 0, 0, 0, 0);
+MEMWB mem_wb = MEMWB(0, 0, 0, 0, 0);
+IFID if_id_cpy = IFID(0, 0);
+IDEX id_ex_cpy = IDEX(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+EXMEM ex_mem_cpy = EXMEM(0, 0, 0 ,0, 0, 0, 0, 0, 0);
+MEMWB mem_wb_cpy = MEMWB(0, 0, 0, 0, 0);
 
 uint32_t ex_fwd_A = 0;
 uint32_t ex_fwd_B = 0;
@@ -475,13 +475,13 @@ bool isRegWrite(uint32_t opcode, uint32_t func_code) {
       break;
     default:
       return true;
-      break
+      break;
   }
   return true;
 }
 
 bool isValidInstruction(uint32_t opcode, uint32_t func_code) {
-    switch (opCode){
+  switch (opcode){
     // r-type instructions
     case 0:
     {
@@ -675,7 +675,7 @@ void ifSection() {
 
 void idSection() {
     // retrieve and decode the instruction
-    instruction = if_id_cpy.ir;
+    uint32_t instruction = if_id_cpy.ir;
     load_use_stall = false;
     id_ex.opcode = instruction >> 26;
     id_ex.RS = instruction << 6 >> 27;
@@ -688,10 +688,11 @@ void idSection() {
     id_ex.shamt = instruction << 21 >> 27;
     id_ex.seimmed = (id_ex.immed >> 15 == 0) ? (uint32_t)id_ex.immed : ((uint32_t)id_ex.immed | 0xffff0000);
     id_ex.IR = instruction;
+    bool memRead = false;
 
     if (!isValidInstruction(id_ex.opcode, id_ex.func_code)) {
       handleException(false);
-      break;
+      return;
     }
 
     switch (id_ex.opcode) {
@@ -737,10 +738,10 @@ void idSection() {
 
       // case when we have a load, 2 things in the middle, and then a branch
       if ((mem_wb_cpy.regWrite && (mem_wb_cpy.rd != 0)) && (mem_wb_cpy.rd == id_ex.rs)) {
-        A = mem_wb_cpy.memData;
+        id_ex.A = mem_wb_cpy.memData;
       }
       else if ((mem_wb_cpy.regWrite && (mem_wb_cpy.rd != 0)) && (mem_wb_cpy.rd == id_ex.rt)) {
-        B = mem_wb_cpy.memData;
+        id_ex.B = mem_wb_cpy.memData;
       }
       // case when we have a load, 1 thing in the middle, and then a branch (stall by 1 cycles)
       if ((ex_mem_cpy.regWrite && (ex_mem_cpy.rd != 0)) && (ex_mem_cpy.rd == id_ex.rs)) {
