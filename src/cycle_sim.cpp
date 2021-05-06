@@ -915,221 +915,244 @@ void exSection() {
           // add 
           case 0x20:
           {
-              uint32_t sigbit_rs = A >> 31;
-              uint32_t sigbit_rt = B >> 31;
-              uint32_t res = (uint32_t)((int)A + (int)B);
-              uint32_t sigbit_rd = res >> 31;
-              if (sigbit_rs == sigbit_rt) {
-                  if (sigbit_rd != sigbit_rs) {
-                      /* TODO: Handle Exceptions! */
-                      handleException(true);
-                      break;
-                  }
-              }
-              ex_mem.ALUOut = res;
-              break;
+            uint32_t sigbit_rs = A >> 31;
+            uint32_t sigbit_rt = B >> 31;
+            uint32_t res = (uint32_t)((int)A + (int)B);
+            uint32_t sigbit_rd = res >> 31;
+            if (sigbit_rs == sigbit_rt) {
+                if (sigbit_rd != sigbit_rs) {
+                    /* TODO: Handle Exceptions! */
+                    handleException(true);
+                    break;
+                }
+            }
+            ex_mem.ALUOut = res;
+            advance_pc(4);
+            break;
            }
           // addu
           case 0x21:
-              ex_mem.ALUOut = A + B;
-              break;
+            ex_mem.ALUOut = A + B;
+            advance_pc(4);
+            break;
           // and
           case 0x24:
-              ex_mem.ALUOut = A & B;
-              break;
+            ex_mem.ALUOut = A & B;
+            advance_pc(4);
+            break;
           // nor
           case 0x27:
-              ex_mem.ALUOut = ~(A | B);
-              break;
+            ex_mem.ALUOut = ~(A | B);
+            advance_pc(4);
+            break;
           // or
           case 0x25:
-              ex_mem.ALUOut = A | B;
-              break;
+            ex_mem.ALUOut = A | B;
+            advance_pc(4);
+            break;
           // slt (signed)
           case 0x2a:
-              ex_mem.ALUOut = ((int)A < (int)B) ? 1 : 0;
-              break;
+            ex_mem.ALUOut = ((int)A < (int)B) ? 1 : 0;
+            advance_pc(4);
+            break;
           // sltu
           case 0x2b:
-              ex_mem.ALUOut = (A < B) ? 1 : 0;
-              break;
+            ex_mem.ALUOut = (A < B) ? 1 : 0;
+            advance_pc(4);
+            break;
           // sll
           case 0x00:
-              ex_mem.ALUOut = (B << shamt);
-              break;
+            ex_mem.ALUOut = (B << shamt);
+            advance_pc(4);
+            break;
           // srl
           case 0x02:
-              ex_mem.ALUOut = (B >> shamt);
-              break;
+            ex_mem.ALUOut = (B >> shamt);
+            advance_pc(4);
+            break;
           // sub (signed)
           case 0x22:
           {
-              uint32_t sigbit_rs = A >> 31;
-              uint32_t sigbit_rt = B >> 31;
-              uint32_t res = (uint32_t)((int)A - (int)B);
-              uint32_t sigbit_rd = res >> 31;
-              if ((sigbit_rs == 0) && (sigbit_rt == 1)) {
-                  if (sigbit_rd == 1) {
-                      /* TODO: Handle Exceptions! */
-                      handleException(true);
-                      break;
-                  }
-              }
-              else if ((sigbit_rs == 1) && (sigbit_rt == 0)) {
-                  if (sigbit_rd == 0) {
-                      /* TODO: Handle Exceptions! */
-                      handleException(true);
-                      break;
-                  }
-              }
-              ex_mem.ALUOut = res;
-              break;
+            uint32_t sigbit_rs = A >> 31;
+            uint32_t sigbit_rt = B >> 31;
+            uint32_t res = (uint32_t)((int)A - (int)B);
+            uint32_t sigbit_rd = res >> 31;
+            if ((sigbit_rs == 0) && (sigbit_rt == 1)) {
+                if (sigbit_rd == 1) {
+                    /* TODO: Handle Exceptions! */
+                    handleException(true);
+                    break;
+                }
+            }
+            else if ((sigbit_rs == 1) && (sigbit_rt == 0)) {
+                if (sigbit_rd == 0) {
+                    /* TODO: Handle Exceptions! */
+                    handleException(true);
+                    break;
+                }
+            }
+            advance_pc(4);
+            ex_mem.ALUOut = res;
+            break;
           }
           // subu
           case 0x23:
-              ex_mem.ALUOut = A - B;
-              break;
+            ex_mem.ALUOut = A - B;
+            advance_pc(4);
+            break;
         }
         break;
     }
     // rest are I-Types
     case 0x8:
     {
-        // add-immediate
-        // sign extend in c++, get the most significant bit
-        if (mostSig == 1) {
-            imm = imm | 0xffff0000;
-        }
-        uint32_t sigbit_rs = A >> 31;
-        uint32_t sigbit_imm = imm >> 31;
-        uint32_t res = (uint32_t)((int)A + (int)imm);
-        uint32_t sigbit_rd = res >> 31;
-        if (sigbit_rs == sigbit_imm) {
-            if (sigbit_rd != sigbit_rs) {
-                /* TODO: Handle Exception! */
-                handleException(true);
-                break;
-            }
-        }
-        ex_mem.ALUOut = res;
-        break;
+      // add-immediate
+      // sign extend in c++, get the most significant bit
+      if (mostSig == 1) {
+          imm = imm | 0xffff0000;
+      }
+      uint32_t sigbit_rs = A >> 31;
+      uint32_t sigbit_imm = imm >> 31;
+      uint32_t res = (uint32_t)((int)A + (int)imm);
+      uint32_t sigbit_rd = res >> 31;
+      if (sigbit_rs == sigbit_imm) {
+          if (sigbit_rd != sigbit_rs) {
+              /* TODO: Handle Exception! */
+              handleException(true);
+              break;
+          }
+      }
+      ex_mem.ALUOut = res;
+      advance_pc(4);
+      break;
     }
     case 0x9:
     {
-        // add-immediate unsigned
-        // sign extend in c++, get the most significant bit
-        if (mostSig == 1) {
-            imm = imm | 0xffff0000;
-        }
-        ex_mem.ALUOut = A + imm;
-        break;
+      // add-immediate unsigned
+      // sign extend in c++, get the most significant bit
+      if (mostSig == 1) {
+          imm = imm | 0xffff0000;
+      }
+      ex_mem.ALUOut = A + imm;
+      advance_pc(4);
+      break;
     }
     case 0xc:
     {
-        // and immediate unsigned
-        ex_mem.ALUOut = A & imm;
-        break;
+      // and immediate unsigned
+      ex_mem.ALUOut = A & imm;
+      advance_pc(4);
+      break;
     }
     case 0xd:
     {
-        // or immediate
-        ex_mem.ALUOut = A | imm;
-        break;
+      // or immediate
+      ex_mem.ALUOut = A | imm;
+      advance_pc(4);
+      break;
     }
     case 0xa:
     {
-        // set less than immediate
-        if (mostSig == 1) {
-            imm = imm | 0xffff0000;
-        }
-        ex_mem.ALUOut = ((int)A < (int)imm) ? 1 : 0;
-        break;
+      // set less than immediate
+      if (mostSig == 1) {
+          imm = imm | 0xffff0000;
+      }
+      ex_mem.ALUOut = ((int)A < (int)imm) ? 1 : 0;
+      advance_pc(4);
+      break;
     }
     case 0xb:
     {
-        // set less than immediate unsigned
-        ex_mem.ALUOut = (A < imm) ? 1 : 0;
-        break;
+      // set less than immediate unsigned
+      ex_mem.ALUOut = (A < imm) ? 1 : 0;
+      advance_pc(4);
+      break;
     }
     case 0x24:
     {
-        // load byte unsigned
-        // sign extend the imm variable
-        if (mostSig == 1) {
-            imm = imm | 0xfffc0000;
-        }
-        uint32_t res = imm + A;
-        uint32_t result = 0x0;
-        ex_mem.ALUOut = result;
-        memRead = true;
-        break;
+      // load byte unsigned
+      // sign extend the imm variable
+      if (mostSig == 1) {
+          imm = imm | 0xfffc0000;
+      }
+      uint32_t res = imm + A;
+      uint32_t result = 0x0;
+      ex_mem.ALUOut = result;
+      memRead = true;
+      advance_pc(4);
+      break;
     }
     case 0x25:
     {
-        // load half word unsigned
-        // sign extend the imm variable
-        if (mostSig == 1) {
-            imm = imm | 0xfffc0000;
-        }
-        uint32_t res = imm + A;
-        uint32_t result = 0x0;
-        memRead = true;
-        ex_mem.ALUOut = result;
-        break;
+      // load half word unsigned
+      // sign extend the imm variable
+      if (mostSig == 1) {
+          imm = imm | 0xfffc0000;
+      }
+      uint32_t res = imm + A;
+      uint32_t result = 0x0;
+      memRead = true;
+      ex_mem.ALUOut = result;
+      advance_pc(4);
+      break;
     }
     case 0xf:
     {
-        // load upper immediate
-        ex_mem.ALUOut = (imm << 16);
-        memRead = true;
-        break;
+      // load upper immediate
+      ex_mem.ALUOut = (imm << 16);
+      memRead = true;
+      advance_pc(4);
+      break;
     }
     case 0x23:
     {
-        // load word
-        uint32_t res = 0;
-        if (mostSig == 1) {
-            imm = imm | 0xffff0000;
-        }
-        res = imm + A;	
-        uint32_t result;
-        ex_mem.ALUOut = result;
-        memRead = true;
-        break;
+      // load word
+      uint32_t res = 0;
+      if (mostSig == 1) {
+          imm = imm | 0xffff0000;
+      }
+      res = imm + A;	
+      uint32_t result;
+      ex_mem.ALUOut = result;
+      memRead = true;
+      advance_pc(4);
+      break;
     }
     case 0x28:
     {
       regWrite = false;
-        // store byte
-        if (mostSig == 1) {
-            imm = imm | 0xffff0000;
-        }
-        uint32_t location = 0;
-        location = A + imm;
-        uint32_t value = 0;
-        value = B << 24;
-        value = value >> 24; 
-        ex_mem.ALUOut = value;
-        ex_mem.B = ex_mem.B && (0x000000ff);
-        memWrite = true;
-        break;
+      // store byte
+      if (mostSig == 1) {
+          imm = imm | 0xffff0000;
+      }
+      uint32_t location = 0;
+      location = A + imm;
+      uint32_t value = 0;
+      value = B << 24;
+      value = value >> 24; 
+      ex_mem.ALUOut = value;
+      ex_mem.B = ex_mem.B && (0x000000ff);
+      memWrite = true;
+      advance_pc(4);
+      break;
     }
     case 0x29:
     {
       regWrite = false;
-        memWrite = true;
-        // store halfword 
-        if (mostSig == 1) {
-            imm = imm | 0xffff0000;
-        }
-        uint32_t location = 0;
-        location = A + imm;
-        uint32_t value = 0;
-        value = B << 16;
-        value = value >> 16; 
-        ex_mem.B = ex_mem.B && (0x0000ffff);
-        ex_mem.ALUOut = value;
-        break;
+      memWrite = true;
+      // store halfword 
+      if (mostSig == 1) {
+          imm = imm | 0xffff0000;
+      }
+      uint32_t location = 0;
+      location = A + imm;
+      uint32_t value = 0;
+      value = B << 16;
+      value = value >> 16; 
+      ex_mem.B = ex_mem.B && (0x0000ffff);
+      ex_mem.ALUOut = value;
+      advance_pc(4);
+      break;
     }
     case 0x2b:
     {
@@ -1143,6 +1166,7 @@ void exSection() {
       location = A + imm;
       uint32_t value = B;
       ex_mem.ALUOut = value;
+      advance_pc(4);
       break;
     }
   }
