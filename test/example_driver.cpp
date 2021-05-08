@@ -69,10 +69,7 @@ int main(int argc, char **argv)
 
     initSimulator(icConfig, dcConfig, mem);
 
-    runCycles(10);
-
-    runTillHalt();
-
+    runCycles(30);
     finalizeSimulator();
 
     delete mem;
