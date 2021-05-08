@@ -688,7 +688,7 @@ void idSection() {
     id_ex.RS = instruction << 6 >> 27;
     id_ex.RT = instruction << 11 >> 27;
     id_ex.RD = instruction << 16 >> 27;
-    id_ex.func_code = instruction && (63); 
+    id_ex.func_code = instruction & (63); 
     id_ex.immed = instruction << 16 >> 16;
     id_ex.A = reg[id_ex.RS];
     id_ex.B = reg[id_ex.RT];
