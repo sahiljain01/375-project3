@@ -431,6 +431,8 @@ void handleException(bool isArithmetic) {
   if_id.nPC = 0;
   if_id.IR = 0;
 
+  feedfeed_hit = false;
+
   id_ex.opcode = 0;
   id_ex.func_code = 0;
   id_ex.nPC = 0;
