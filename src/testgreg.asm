@@ -1,6 +1,6 @@
 # Overflow test case for invalid instr
 .set noreorder
-lw $s0, value
+lw $t0, 0x18($zero);
 nop
 nop
 addi $s1, $s0, 0x1
