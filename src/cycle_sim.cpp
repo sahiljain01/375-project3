@@ -693,6 +693,9 @@ void ifSection() {
 
 void idSection() {
     // retrieve and decode the instruction
+    if (load_use_stall_delay) {
+      return;
+    }
     uint32_t instruction = if_id_cpy.IR;
     load_use_stall = false;
     id_ex.opcode = instruction >> 26;
