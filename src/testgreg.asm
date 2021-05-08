@@ -1,18 +1,8 @@
-# Overflow test case for add
+# Overflow test case for invalid instr
 .set noreorder
-addi $t4, $zero, next+4;
+ll $t4, $zero, 0x04;
 nop
 nop
-lw $s0, 0($t4);
-nop
-nop
-addi $s1, $zero, 0x1
-nop
-nop
-add $s2, $s0, $s1
-nop
-nop
-sw $s1, next+4
 next:
 .word 0xfeedfeed
 .word 0x7fffffff
