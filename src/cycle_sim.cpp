@@ -441,6 +441,7 @@ void handleException(bool isArithmetic) {
   id_ex.A = 0;
   id_ex.B = 0;
   id_ex.seimmed = 0;
+  id_ex.IR = 0;
 
   if (isArithmetic) {
     /* Start Updating the Copies */
@@ -452,6 +453,7 @@ void handleException(bool isArithmetic) {
     ex_mem.regWrite = 0;
     ex_mem.memWrite = 0;
     ex_mem.memRead = 0;
+    ex_mem.IR = 0;
   }
   PC = 0x8000;
   nPC = PC + WORD_SIZE;
