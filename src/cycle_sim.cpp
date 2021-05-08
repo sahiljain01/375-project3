@@ -424,6 +424,7 @@ void advance_pc(uint32_t offset)
 }
 
 void handleException(bool isArithmetic) {
+  cout << '\n' << "Hit an exception! here's the PC: " << hex << PC << "and here's the exception type: " << isArithmetic;
   PC = 0x8000;
   // in the EX stage
   if_id.nPC = 0;
@@ -628,7 +629,7 @@ bool isValidInstruction(uint32_t opcode, uint32_t func_code) {
     }
     case 0x2b:
     {
-        return true;
+      return true;
       // store word
       break;
     }
