@@ -1,0 +1,17 @@
+.set noreorder
+	lw $s0, next+4
+	lw $s1, next+8
+	nop
+	nop
+	nop
+	nop
+	nop
+	slt $s2, $s0, $s1
+	nop
+	nop
+	sw $s2, next+4
+next:
+	.word 0xfeedfeed
+	.word 0x1
+	.word 0x2
+	
