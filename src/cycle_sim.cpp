@@ -424,7 +424,7 @@ void advance_pc(uint32_t offset)
 }
 
 void handleException(bool isArithmetic) {
-  cout << '\n' << "Hit an exception! here's the PC: " << hex << PC << "and here's the exception type: " << isArithmetic;
+  cout << '\n' << "Hit an exception! here's the PC: " << hex << PC << "and here's the exception type: " << isArithmetic << '\n';
   PC = 0x8000;
   // in the EX stage
   if_id.nPC = 0;
@@ -484,6 +484,7 @@ bool isRegWrite(uint32_t opcode, uint32_t func_code) {
 }
 
 bool isValidInstruction(uint32_t opcode, uint32_t func_code) {
+  cout << '\n' << hex << opcode << ' ' << hex << func_code << '\n';
   switch (opcode){
     // r-type instructions
     case 0:
@@ -662,7 +663,7 @@ void ifSection() {
     //   // TODO: Add stalling logic here.
     // }
     myMem->getMemValue(PC_cpy, instruction, WORD_SIZE);
-    cout << hex << instruction << '\n' << "PC:" << hex << PC << '\n';
+    // cout << hex << instruction << '\n' << "PC:" << hex << PC << '\n';
 
     if (!feedfeed_hit) {
       if_instruction = instruction;
