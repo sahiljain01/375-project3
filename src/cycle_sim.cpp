@@ -651,7 +651,7 @@ bool isValidInstruction(uint32_t opcode, uint32_t func_code) {
 void ifSection() {
     /* IF section  */
     uint32_t instruction = 0;
-
+    cout << instruction << '\n' << 'PC:' << PC;
     if (load_use_stall) {
       load_use_stall = false;
       return;
@@ -752,7 +752,6 @@ void idSection() {
       if ((ex_mem_cpy.regWrite && (ex_mem_cpy.RD != 0)) && (ex_mem_cpy.RD == id_ex.RS)) {
         instruction = 0;
         id_ex = IDEX();
-        
         load_use_stall = true;
       }
       else if ((ex_mem_cpy.regWrite && (ex_mem_cpy.RD != 0)) && (ex_mem_cpy.RD == id_ex.RT)) {
