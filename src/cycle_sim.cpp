@@ -1116,7 +1116,6 @@ void exSection() {
       cout << '\n' << "was inside the load upper immediate stage " << hex << PC << "\n";
       // load upper immediate
       ex_mem.ALUOut = (imm << 16);
-      memRead = true;
       advance_pc(4);
       break;
     }
@@ -1142,12 +1141,9 @@ void exSection() {
           imm = imm | 0xffff0000;
       }
       uint32_t location = 0;
-      location = A + imm;
-      uint32_t value = 0;
-      value = B << 24;
-      value = value >> 24; 
-      ex_mem.ALUOut = value;
-      ex_mem.B = ex_mem.B && (0x000000ff);
+      location = A + imm; 
+      ex_mem.ALUOut = location;
+      ex_mem.B = ex_mem.B & (0x000000ff);
       memWrite = true;
       advance_pc(4);
       break;
@@ -1161,12 +1157,9 @@ void exSection() {
           imm = imm | 0xffff0000;
       }
       uint32_t location = 0;
-      location = A + imm;
-      uint32_t value = 0;
-      value = B << 16;
-      value = value >> 16; 
-      ex_mem.B = ex_mem.B && (0x0000ffff);
-      ex_mem.ALUOut = value;
+      location = A + imm; 
+      ex_mem.B = ex_mem.B & (0x0000ffff);
+      ex_mem.ALUOut = location;
       advance_pc(4);
       break;
     }
@@ -1180,8 +1173,7 @@ void exSection() {
       }
       uint32_t location = 0;
       location = A + imm;
-      uint32_t value = B;
-      ex_mem.ALUOut = value;
+      ex_mem.ALUOut = location;
       advance_pc(4);
       break;
     }
@@ -1206,10 +1198,61 @@ void memSection() {
   mem_wb.IR = ex_mem_cpy.IR;
 
   uint32_t storeData = 0;
-
+  uint32_t opcode = 0;
+  uint32_t func_code = 0;
   bool memRead_mem = ex_mem_cpy.memRead;
   bool memWrite_mem = ex_mem_cpy.memWrite;
   bool regWrite = ex_mem_cpy.regWrite;  
+
+  MemEntrySize size = WORD_SIZE;
+  if (memRead_mem || memWrite_mem) {
+    opcode = mem_wb.IR >> 26;
+    func_code = mem_wb.IR  & (63);
+    cout << "opcode: " << hex << opcode << '\n';
+    switch (opcode) {
+      case 0x28:
+	{
+	  size = BYTE_SIZE;
+	  // store byte
+	  break;
+	}
+      case 0x29:
+	{
+	  size = HALF_SIZE;
+	  // store halfword 
+	  break;
+	}
+      case 0x2b:
+	{
+	  size = WORD_SIZE;
+	  // store word
+	  break;
+	}
+
+      case 0x24:
+	{
+	  // load byte unsigned
+	  size = BYTE_SIZE;
+	  break;
+	}
+      case 0x25:
+	{
+	  size = HALF_SIZE;
+	  break;
+	}
+      case 0x23:
+        {
+          size = WORD_SIZE;
+          // load word                                                                                                                
+          break;
+        }
+      default:
+	cout << "something went wrong!!";
+	break;
+
+    }
+
+  }
 
   if (memRead_mem) {
     // bool hit = cacheAccess(false, ex_mem_cpy.ALUOut, &storeData, true);
@@ -1217,7 +1260,7 @@ void memSection() {
     // if (!hit) {
     //   /* TODO: Work on Cache Latency / Stall Here As Well */
     // }
-    myMem->getMemValue(ex_mem_cpy.ALUOut, storeData, WORD_SIZE);
+    myMem->getMemValue(ex_mem_cpy.ALUOut, storeData, size);
     mem_wb.memData = storeData;
   }
   if (memWrite_mem) {
@@ -1225,7 +1268,7 @@ void memSection() {
     // if (!hit) {
     //   /* TODO: Work on Cache Latency / Stall Here As Well */
     // }
-    myMem->setMemValue(ex_mem_cpy.ALUOut, ex_mem_cpy.B, WORD_SIZE);
+    myMem->setMemValue(ex_mem_cpy.ALUOut, ex_mem_cpy.B,  size);
   }
 
   /* End of Mem Section */ 
@@ -1237,8 +1280,8 @@ bool wbSection() {
   if (mem_wb_cpy.IR == 0xfeedfeed) {
     return true;
   }
-
-  if (mem_wb_cpy.regWrite) {
+  
+  if (isRegWrite(wb_instruction >> 26, wb_instruction & (63))) {
     reg[mem_wb_cpy.RD] = mem_wb_cpy.ALUOut;
   }
 
