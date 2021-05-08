@@ -1,6 +1,6 @@
 # Overflow test case for invalid instr
 .set noreorder
-ll $t4, $zero, 0x4
+ll $s0, $s1, 0x44
 nop
 nop
 next:
