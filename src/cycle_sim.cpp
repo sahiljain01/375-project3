@@ -651,7 +651,6 @@ bool isValidInstruction(uint32_t opcode, uint32_t func_code) {
 void ifSection() {
     /* IF section  */
     uint32_t instruction = 0;
-    cout << hex << instruction << '\n' << "PC:" << hex << PC << '\n';
     if (load_use_stall) {
       load_use_stall = false;
       return;
@@ -662,6 +661,7 @@ void ifSection() {
     //   // TODO: Add stalling logic here.
     // }
     myMem->getMemValue(PC_cpy, instruction, WORD_SIZE);
+    cout << hex << instruction << '\n' << "PC:" << hex << PC << '\n';
 
     if (!feedfeed_hit) {
       if_instruction = instruction;
