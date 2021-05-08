@@ -1134,7 +1134,7 @@ void exSection() {
       if (mostSig == 1) {
           imm = imm | 0xffff0000;
       }
-      res = imm + A;	
+      res = imm + A;
       ex_mem.ALUOut = res;
       memRead = true;
       advance_pc(4);
@@ -1268,7 +1268,7 @@ void memSection() {
     //   /* TODO: Work on Cache Latency / Stall Here As Well */
     // }
     myMem->getMemValue(ex_mem_cpy.ALUOut, storeData, size);
-    mem_wb.memData = storeData;
+    mem_wb.ALUOut = storeData;
   }
   if (memWrite_mem) {
     // bool hit = cacheAccess(false, ex_mem_cpy.ALUOut, ex_mem_cpy.B, false);
