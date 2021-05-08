@@ -199,7 +199,7 @@ static void evict_block(bool isICache, uint32_t index) {
 
 // TODO: static function for reading block from memory into cache
 
-static void read_from_mem(bool isICache, uint32_t index, uint32_t size) {
+static void read_from_mem(bool isICache, uint32_t index) {
 
   Cache* cache = isICache ? &iCache : &dCache;
   uint32_t block_size = 1 << cache->block_bits;
@@ -211,7 +211,7 @@ static void read_from_mem(bool isICache, uint32_t index, uint32_t size) {
   first_block_address <<= cache->block_bits + 2;
 
   for (int i = 0; i < block_size; i++) {
-     myMem->getMemValue(first_block_address + 4 * i, cache->entries[index].data[i], (MemEntrySize)size);
+     myMem->getMemValue(first_block_address + 4 * i, cache->entries[index].data[i], WORD_SIZE);
   }
 }
 
@@ -270,7 +270,7 @@ bool cacheAccess(bool isICache, uint32_t memAddress, uint32_t *data, bool isRead
 
       // read from memAddress to cache
       cache->entries[index].tag = tag;
-      read_from_mem(true, index, size);
+      read_from_mem(true, index);
 
       // read from cache into data
       cache->entries[index].isValid = true;
@@ -325,7 +325,7 @@ bool cacheAccess(bool isICache, uint32_t memAddress, uint32_t *data, bool isRead
       }
       // read from memAddress to cache
       cache->entries[index + LRU].tag = tag;
-      read_from_mem(true, index + LRU, size);
+      read_from_mem(true, index + LRU);
 
       // read from cache into data
       cache->entries[index + LRU].isValid = true;
