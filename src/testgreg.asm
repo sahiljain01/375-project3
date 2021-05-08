@@ -1,6 +1,11 @@
 # Overflow test case for add
 .set noreorder
-lw $s0, next+8
+addi $t4, $zero, next+4;
+nop
+nop
+lw $s0, 0($t4);
+nop
+nop
 addi $s1, $zero, 0x1
 nop
 nop
