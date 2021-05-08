@@ -1,10 +1,10 @@
-# A simple test case for sub
+# Overflow test case for add
 .set noreorder
-addi $s0, $zero, 0x03
-addi $s1, $zero, 0x02
+addi $s0, $zero, 0x01
+addi $s1, $zero, 0x7fffffff
 nop
 nop
-sub $s2, $s0, $s1
+add $s2, $s0, $s1
 nop
 nop
 sw $s2, next+4
