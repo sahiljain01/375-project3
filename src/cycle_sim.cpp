@@ -651,7 +651,7 @@ bool isValidInstruction(uint32_t opcode, uint32_t func_code) {
 void ifSection() {
     /* IF section  */
     uint32_t instruction = 0;
-    cout << instruction << '\n' << 'PC:' << PC;
+    cout << hex << instruction << '\n' << "PC:" << hex << PC;
     if (load_use_stall) {
       load_use_stall = false;
       return;
