@@ -430,8 +430,8 @@ void handleException(bool isArithmetic) {
   cout << '\n' << "Hit an exception! here's the PC: " << hex << PC << "and here's the exception type: " << isArithmetic << '\n';
   PC = 0x8000;
   // in the EX stage
-  if_id.nPC = 0;
-  if_id.IR = 0;
+  if_id_cpy.nPC = 0;
+  if_id_cpy.IR = 0;
 
   hit_exception = true;
 
@@ -458,6 +458,17 @@ void handleException(bool isArithmetic) {
     ex_mem.memWrite = 0;
     ex_mem.memRead = 0;
     ex_mem.IR = 0;
+    id_ex_cpy.opcode = 0;
+    id_ex_cpy.func_code = 0;
+    id_ex_cpy.nPC = 0;
+    id_ex_cpy.RS = 0;
+    id_ex_cpy.RT = 0;
+    id_ex_cpy.RD = 0;
+    id_ex_cpy.immed = 0;
+    id_ex_cpy.A = 0;
+    id_ex_cpy.B = 0;
+    id_ex_cpy.seimmed = 0;
+    id_ex_cpy.IR = 0;
   }
   PC = 0x8000;
   nPC = PC + WORD_SIZE;
