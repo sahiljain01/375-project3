@@ -671,7 +671,7 @@ bool isValidInstruction(uint32_t opcode, uint32_t func_code) {
 // IF section code
 void ifSection() {
     /* IF section  */
-    // uint32_t instruction = 0;
+    uint32_t instruction = 0;
     // if (load_use_stall_delay) {
     //   load_use_stall_delay = false;
     //   return;
