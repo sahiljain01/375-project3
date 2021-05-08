@@ -58,6 +58,7 @@ uint32_t icMisses = 0;
 uint32_t dcHits = 0;
 uint32_t dcMisses = 0;
 uint32_t totalCycles = 0;
+bool hit_exception = false;
 
 /* End of Global Variable Definitions */
 
@@ -425,13 +426,14 @@ void advance_pc(uint32_t offset)
 }
 
 void handleException(bool isArithmetic) {
+  
   cout << '\n' << "Hit an exception! here's the PC: " << hex << PC << "and here's the exception type: " << isArithmetic << '\n';
   PC = 0x8000;
   // in the EX stage
   if_id.nPC = 0;
   if_id.IR = 0;
 
-  feedfeed_hit = false;
+  hit_exception = true;
 
   id_ex.opcode = 0;
   id_ex.func_code = 0;
@@ -690,7 +692,9 @@ void ifSection() {
     
 
     if (instruction == 0xfeedfeed) {
-      feedfeed_hit = true;
+      if (!hit_exception){
+        feedfeed_hit = true;
+      }
     }
     /* ID section  */
 }
