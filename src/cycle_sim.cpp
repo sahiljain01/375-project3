@@ -913,7 +913,7 @@ void exSection() {
       B = mem_wb_cpy.memData;
     }
     if (ex_fwd_B == 2) {
-      B = ex_mem_cpy.ALUOut;
+     B = ex_mem_cpy.ALUOut;
     }
 
     // switch based on op-code.
@@ -1091,8 +1091,7 @@ void exSection() {
           imm = imm | 0xfffc0000;
       }
       uint32_t res = imm + A;
-      uint32_t result = 0x0;
-      ex_mem.ALUOut = result;
+      ex_mem.ALUOut = res;
       memRead = true;
       advance_pc(4);
       break;
@@ -1105,9 +1104,8 @@ void exSection() {
           imm = imm | 0xfffc0000;
       }
       uint32_t res = imm + A;
-      uint32_t result = 0x0;
       memRead = true;
-      ex_mem.ALUOut = result;
+      ex_mem.ALUOut = res;
       advance_pc(4);
       break;
     }
@@ -1127,8 +1125,7 @@ void exSection() {
           imm = imm | 0xffff0000;
       }
       res = imm + A;	
-      uint32_t result;
-      ex_mem.ALUOut = result;
+      ex_mem.ALUOut = res;
       memRead = true;
       advance_pc(4);
       break;
