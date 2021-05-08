@@ -1,10 +1,10 @@
-# A simple test case for and
+# A simple test case for sub
 .set noreorder
-addi $s0, $zero, 0x01
+addi $s0, $zero, 0x03
 addi $s1, $zero, 0x02
 nop
 nop
-add $s2, $s1, $s0
+sub $s2, $s0, $s1
 nop
 nop
 sw $s2, next+4
