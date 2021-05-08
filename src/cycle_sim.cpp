@@ -664,6 +664,7 @@ void ifSection() {
     // }
     myMem->getMemValue(PC_cpy, instruction, WORD_SIZE);
     // cout << hex << instruction << '\n' << "PC:" << hex << PC << '\n';
+    if_id.IR = 0;
 
     if (!feedfeed_hit) {
       if_instruction = instruction;
@@ -671,6 +672,11 @@ void ifSection() {
       if_id.nPC = PC + 4;
       if_id.IR = instruction;
     }
+    else {
+      if_instruction = 0;
+      wb_instruction = 0;	
+    }
+    
 
     if (instruction == 0xfeedfeed) {
       feedfeed_hit = true;
@@ -697,7 +703,7 @@ void idSection() {
     id_ex.IR = instruction;
     bool memRead = false;
 
-    if (!isValidInstruction(id_ex.opcode, id_ex.func_code)) {
+    if ((!isValidInstruction(id_ex.opcode, id_ex.func_code)) && (instruction != 0xfeedfeed)) {
       handleException(false);
       return;
     }
@@ -708,10 +714,10 @@ void idSection() {
         memRead = true;
         break;
       }
-      case 0xf:
+    case 0x24:
       {
-        memRead = true;
-        break;
+	memRead = true;
+	break;
       }
       case 0x23:
       {
@@ -721,12 +727,13 @@ void idSection() {
     }
 
     if (memRead && ((id_ex_cpy.RT == id_ex.RS) || (id_ex_cpy.RT == id_ex.RT))) {
+      cout << "inside this if statement";
       instruction = 0;
       id_ex.opcode = instruction >> 26;
       id_ex.RS = instruction << 6 >> 27;
       id_ex.RT = instruction << 11 >> 27;
       id_ex.RD = instruction << 16 >> 27;
-      id_ex.func_code = instruction && (63); 
+      id_ex.func_code = instruction & (63); 
       id_ex.immed = instruction << 16 >> 16;
       id_ex.A = reg[id_ex.RS];
       id_ex.B = reg[id_ex.RT];
@@ -735,9 +742,12 @@ void idSection() {
       id_ex.IR = instruction;
       load_use_stall = true;
       id_ex.regWrite = isRegWrite(id_ex.opcode, id_ex.func_code);
+      return;
     }
 
     bool isBranch = false;
+
+
 
     // ex hazard forwarding to ID stage bc of branches
     if (((id_ex.opcode >= 2) && (id_ex.opcode <= 7)) || ((id_ex.opcode == 0) && (id_ex.func_code == 0x8))) {
@@ -773,8 +783,6 @@ void idSection() {
         load_use_stall = true;
       }
 
-      /* EX HAZARD ********************* */
-
       // case where we have an add, smt in the middle, and then a branch
       if ((ex_mem_cpy.regWrite && (ex_mem_cpy.RD != 0)) && (id_ex.RD == id_ex.RS)) {
         // no stall
@@ -799,9 +807,9 @@ void idSection() {
         id_ex = IDEX();
         load_use_stall = true;
       }
+    
 
-
-    }
+      } 
 
     uint32_t mostSig_ex = id_ex.immed >> 15; // most significant bit in immediate
     uint32_t imm_ex = 0;
@@ -1105,6 +1113,7 @@ void exSection() {
     }
     case 0xf:
     {
+      cout << '\n' << "was inside the load upper immediate stage " << hex << PC << "\n";
       // load upper immediate
       ex_mem.ALUOut = (imm << 16);
       memRead = true;
