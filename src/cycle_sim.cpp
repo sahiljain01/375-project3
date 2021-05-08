@@ -428,7 +428,7 @@ void advance_pc(uint32_t offset)
 void handleException(bool isArithmetic) {
   
   cout << '\n' << "Hit an exception! here's the PC: " << hex << PC << "and here's the exception type: " << isArithmetic << '\n';
-  PC = 0x8000;
+  PC_cpy = 0x8000;
   // in the EX stage
   if_id_cpy.nPC = 0;
   if_id_cpy.IR = 0;
@@ -471,7 +471,8 @@ void handleException(bool isArithmetic) {
     id_ex_cpy.IR = 0;
   }
   PC = 0x8000;
-  nPC = PC + WORD_SIZE;
+  PC_cpy = 0x8000;
+  nPC = PC_cpy + WORD_SIZE;
 }
 
 // determines if an instruction is a regWrite instruction
