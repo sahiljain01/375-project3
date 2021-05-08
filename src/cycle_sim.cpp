@@ -671,17 +671,17 @@ bool isValidInstruction(uint32_t opcode, uint32_t func_code) {
 // IF section code
 void ifSection() {
     /* IF section  */
-    uint32_t instruction = 0;
-    if (load_use_stall_delay) {
-      load_use_stall_delay = false;
-      return;
-    }
-    if (load_use_stall) {
-      load_use_stall_delay = true;
-      load_use_stall = false;
-      if_instruction = myMem->getMemValue(PC_cpy, instruction, WORD_SIZE);
-      return;
-    }
+    // uint32_t instruction = 0;
+    // if (load_use_stall_delay) {
+    //   load_use_stall_delay = false;
+    //   return;
+    // }
+    // if (load_use_stall) {
+    //   load_use_stall_delay = true;
+    //   load_use_stall = false;
+    //   if_instruction = myMem->getMemValue(PC_cpy, instruction, WORD_SIZE);
+    //   return;
+    // }
 
     // bool hit = cacheAccess(true, PC, &instruction, true);
     // if (!hit) {
