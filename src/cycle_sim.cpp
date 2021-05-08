@@ -181,21 +181,21 @@ int initSimulator(CacheConfig & icConfig, CacheConfig & dcConfig, MemoryStore *m
 }
 
 // Dump registers and memory
-static void dump(MemoryStore* mem, uint32_t* reg) {
+static void dump(MemoryStore* mem, uint32_t* myreg) {
    RegisterInfo regs;
 
-   regs.at = reg[1];
-   copy(reg+2, reg+4, regs.v);
-   copy(reg+4, reg+8, regs.a);
-   copy(reg+8, reg+16, regs.t);
-   copy(reg+16, reg+24, regs.s);
-   regs.t[8] = reg[24];
-   regs.t[9] = reg[25];
-   copy(reg+24, reg+26, regs.k);
-   regs.gp = reg[28];
-   regs.sp = reg[29];
-   regs.fp = reg[30];
-   regs.ra = reg[31];
+   regs.at = myreg[1];
+   copy(myreg+2, myreg+4, regs.v);
+   copy(myreg+4, myreg+8, regs.a);
+   copy(myreg+8, myreg+16, regs.t);
+   copy(myreg+16, myreg+24, regs.s);
+   regs.t[8] = myreg[24];
+   regs.t[9] = myreg[25];
+   copy(myreg+24, myreg+26, regs.k);
+   regs.gp = myreg[28];
+   regs.sp = myreg[29];
+   regs.fp = myreg[30];
+   regs.ra = myreg[31];
 
    dumpRegisterState(regs);
    dumpMemoryState(mem);
