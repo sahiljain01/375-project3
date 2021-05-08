@@ -107,6 +107,7 @@ struct MEMWB {
 bool receivedIR = false;
 bool feedfeed_hit = false;
 bool load_use_stall = false;
+bool load_use_stall_delay = false;
 
 IFID if_id;
 IDEX id_ex;
@@ -653,9 +654,13 @@ bool isValidInstruction(uint32_t opcode, uint32_t func_code) {
 void ifSection() {
     /* IF section  */
     uint32_t instruction = 0;
-    if (load_use_stall) {
-      load_use_stall = false;
+    if (load_use_stall_delay) {
+      load_use_stall_delay = false;
       return;
+    }
+    if (load_use_stall) {
+      load_use_stall_delay = true;
+      load_use_stall = false;
     }
 
     // bool hit = cacheAccess(true, PC, &instruction, true);
