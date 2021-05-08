@@ -670,7 +670,7 @@ void ifSection() {
     //   // TODO: Add stalling logic here.
     // }
     myMem->getMemValue(PC_cpy, instruction, WORD_SIZE);
-    // cout << hex << instruction << '\n' << "PC:" << hex << PC << '\n';
+    cout << hex << instruction << '\n' << "PC:" << hex << PC << '\n';
     if_id.IR = 0;
 
     if (!feedfeed_hit) {
