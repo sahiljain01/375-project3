@@ -778,6 +778,7 @@ void idSection() {
     if (load_use_stall_delay) {
       return;
     }
+    
     uint32_t instruction = if_id_cpy.IR;
     load_use_stall = false;
     id_ex.opcode = instruction >> 26;
@@ -807,8 +808,8 @@ void idSection() {
       }
     case 0x24:
       {
-	memRead = true;
-	break;
+        memRead = true;
+        break;
       }
       case 0x23:
       {
@@ -819,21 +820,22 @@ void idSection() {
     if (ex_mem.memRead && ((ex_mem.RD == id_ex.RS) || (ex_mem.RD == id_ex.RT))) {
       cout << "inside this if statement";
       instruction = 0;
-      id_ex.opcode = instruction >> 26;
-      id_ex.RS = instruction << 6 >> 27;
-      id_ex.RT = instruction << 11 >> 27;
-      id_ex.RD = instruction << 16 >> 27;
-      id_ex.func_code = instruction & (63); 
-      id_ex.immed = instruction << 16 >> 16;
-      id_ex.A = reg[id_ex.RS];
-      id_ex.B = reg[id_ex.RT];
-      id_ex.shamt = instruction << 21 >> 27;
-      id_ex.seimmed = (id_ex.immed >> 15 == 0) ? (uint32_t)id_ex.immed : ((uint32_t)id_ex.immed | 0xffff0000);
-      id_ex.IR = instruction;
+      id_ex.opcode = 0;
+      id_ex.RS = 0;
+      id_ex.RT = 0;
+      id_ex.RD = 0;
+      id_ex.func_code = 0;
+      id_ex.immed = 0;
+      id_ex.A = 0;
+      id_ex.B = 0;
+      id_ex.shamt = 0;
+      id_ex.seimmed = 0;
+      id_ex.IR = 0;
+      id_ex.insertedNOP = true;
+      id_ex.regWrite = false;
+
       load_use_stall = true;
       load_use_stalls = 1;
-      id_ex.insertedNOP = true;
-      id_ex.regWrite = isRegWrite(id_ex.opcode, id_ex.func_code);
       return;
     }
 
@@ -905,9 +907,7 @@ void idSection() {
         load_use_stall = true;
         load_use_stalls = 1;
       }
-    
-
-      } 
+    } 
 
     uint32_t mostSig_ex = id_ex.immed >> 15; // most significant bit in immediate
     uint32_t imm_ex = 0;
