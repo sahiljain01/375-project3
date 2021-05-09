@@ -827,7 +827,7 @@ void idSection() {
 
     bool isBranch = false;
     // ex hazard forwarding to ID stage bc of branches
-    if (((id_ex.opcode >= 2) && (id_ex.opcode <= 7)) || ((id_ex.opcode == 0) && (id_ex.func_code == 0x8))) {
+    if (((id_ex.opcode >= 0x2) && (id_ex.opcode <= 0x7)) || ((id_ex.opcode == 0) && (id_ex.func_code == 0x8))) {
       isBranch = true;
     }
 
