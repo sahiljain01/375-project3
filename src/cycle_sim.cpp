@@ -725,7 +725,7 @@ void ifSection() {
     uint32_t instruction = 0;
     if (load_use_stall_delay) {
       load_use_stall--;
-      if (load_use_stall == 0 0) {
+      if (load_use_stall == 0) {
         load_use_stall_delay = false;
       }
       return;
@@ -737,10 +737,11 @@ void ifSection() {
       return;
     }
 
-    bool hit = cacheAccess(true, PC, &instruction, true);
-    if (!hit) {
-      // TODO: Add stalling logic here.
-    }
+    // bool hit = cacheAccess(true, PC, &instruction, true);
+    // if (!hit) {
+    //   // TODO: Add stalling logic here.
+    // }
+
     myMem->getMemValue(PC_cpy, instruction, WORD_SIZE);
     cout << hex << instruction << '\n' << "PC:" << hex << PC << '\n';
     if_id.IR = 0;
