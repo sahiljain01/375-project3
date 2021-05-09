@@ -894,6 +894,7 @@ void idSection() {
 
     uint32_t mostSig_ex = id_ex.immed >> 15; // most significant bit in immediate
     uint32_t imm_ex = 0;
+    uint32_t target = (instruction << 6) >> 6;
     /* Determine if it's a branch. Enter Code Here */
     switch (id_ex.opcode) {
       // beq
@@ -916,7 +917,6 @@ void idSection() {
         break;
       // jump
       case (0x2):
-        uint32_t target = (instruction << 6) >> 6;
         PC = (PC & 0xf0000000) | (target << 2);
         break;
       // jump and link
