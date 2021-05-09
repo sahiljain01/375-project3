@@ -903,6 +903,8 @@ void idSection() {
         break;
       // bne
       case (0x5):
+        cout << "a: " << id_ex.A << '\n';
+        cout << "b: " << id_ex.B << '\n';
         if (id_ex.A != id_ex.B) {
             cout << "old pc: " << PC << '\n';
             advance_pc(id_ex.seimmed << 2);
