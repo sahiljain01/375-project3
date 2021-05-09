@@ -492,9 +492,6 @@ bool isRegWrite(uint32_t opcode, uint32_t func_code) {
     case 0x5:
       return false;
       break;
-    case 0x3:
-      return false;
-      break;
     case 0x6:
       return false;
       break;
@@ -967,6 +964,9 @@ void exSection() {
     ex_mem.IR = id_ex_cpy.IR;
 
     bool regWrite = isRegWrite(opCode, func_code);
+    if (id_ex_cpy.IR == 0xfeedfeed){
+      regWrite = false;
+    }
     bool memWrite = isMemWrite(opCode);
     bool memRead = isMemRead(opCode);
 
@@ -1175,7 +1175,6 @@ void exSection() {
       }
       uint32_t res = imm + A;
       ex_mem.ALUOut = res;
-      memRead = true;
       advance_pc(4);
       break;
     }
@@ -1187,7 +1186,6 @@ void exSection() {
           imm = imm | 0xfffc0000;
       }
       uint32_t res = imm + A;
-      memRead = true;
       ex_mem.ALUOut = res;
       advance_pc(4);
       break;
@@ -1209,7 +1207,6 @@ void exSection() {
       }
       res = imm + A;
       ex_mem.ALUOut = res;
-      memRead = true;
       advance_pc(4);
       break;
     }
