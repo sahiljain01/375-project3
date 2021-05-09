@@ -773,9 +773,9 @@ void ifSection() {
 
 void idSection() {
     // retrieve and decode the instruction
-    // if (load_use_stalls > 1) {
-    //   return;
-    // }
+    if (load_use_stalls > 1) {
+      return;
+    }
     uint32_t instruction = if_id_cpy.IR;
     load_use_stall = false;
     id_ex.opcode = instruction >> 26;
@@ -830,6 +830,8 @@ void idSection() {
     }
 
     // cout << "isbranch: " << isBranch << '\n';
+
+    if (isBranch) {
 
       // case when we have a load, 2 things in the middle, and then a branch
       if ((mem_wb_cpy.regWrite && (mem_wb_cpy.RD != 0)) && (mem_wb_cpy.RD == id_ex.RS)) {
@@ -891,6 +893,7 @@ void idSection() {
         load_use_stall = true;
         load_use_stalls = 1;
       }
+    }
 
     uint32_t mostSig_ex = id_ex.immed >> 15; // most significant bit in immediate
     uint32_t imm_ex = 0;
