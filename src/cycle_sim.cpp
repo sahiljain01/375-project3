@@ -727,6 +727,8 @@ void ifSection() {
       load_use_stalls = load_use_stalls - 1;
       if (load_use_stalls == 0) {
         load_use_stall_delay = false;
+        if_id.IR = if_instruction;
+        PC_cpy = PC;
       }
       return;
     }
@@ -735,7 +737,6 @@ void ifSection() {
       load_use_stall = false;
       myMem->getMemValue(PC_cpy, instruction, WORD_SIZE);
       if_instruction = instruction;
-      PC_cpy = PC;
       return;
     }
 
