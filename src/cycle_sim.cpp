@@ -934,7 +934,7 @@ void idSection() {
         break;
       // blez
       case (0x6):
-        if (id_ex.A <= id_ex.B) {
+        if ((int)id_ex.A <= (int)id_ex.B) {
             advance_pc(id_ex.seimmed << 2);
         }
         else {
@@ -943,7 +943,7 @@ void idSection() {
         break;
       // bgtz
       case (0x7):
-        if (id_ex.A > id_ex.B) {
+        if ((int)id_ex.A > (int)id_ex.B) {
             advance_pc(id_ex.seimmed << 2);
         }
         else {

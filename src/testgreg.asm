@@ -3,11 +3,11 @@
     lw $t1, next+4
     nop
     nop
-    bgtz $t1, afterbranch
+    blez $t1, afterbranch
     addi $t3, $zero, 0x44
 next:
     .word 0xfeedfeed
-    .word 0x00000016
+    .word 0xf0000016
 afterbranch:
     addi $t2, $zero, 0x99
     .word 0xfeedfeed
