@@ -1326,6 +1326,12 @@ int runCycles(uint32_t cycles) {
     // Ex-Hazard
     ex_fwd_A = 0;
     ex_fwd_B = 0;
+    cout << cyclesElapsed << '\n';
+    cout << "ex mem regwrite:" << ex_mem.regWrite << '\n';
+    cout << "ex mem rd:" << ex_mem.RD << '\n';
+    cout << "id ex rs:" << id_ex.RS << '\n';
+    cout << "id ex rt:" << id_ex.RT << '\n';
+    cout << '\n';
 
     if ((ex_mem.regWrite && (ex_mem.RD != 0)) && (ex_mem.RD == id_ex.RS)) {
       ex_fwd_A = 2;
