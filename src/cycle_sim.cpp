@@ -486,6 +486,21 @@ bool isRegWrite(uint32_t opcode, uint32_t func_code) {
     case 0x2:
       return false;
       break;
+    case 0x4:
+      return false;
+      break;
+    case 0x5:
+      return false;
+      break;
+    case 0x3:
+      return false;
+      break;
+    case 0x6:
+      return false;
+      break;
+    case 0x7:
+      return false;
+      break;
     case 0x28:
       return false;
       break;
@@ -500,6 +515,44 @@ bool isRegWrite(uint32_t opcode, uint32_t func_code) {
       break;
   }
   return true;
+}
+
+// determines if an instruction is a memRead instruction
+bool isMemRead(uint32_t opcode){
+  switch (opcode){
+    case 0x23:
+      return true;
+      break;
+    case 0x24:
+      return true;
+      break;
+    case 0x25:
+      return true;
+      break;
+    default:
+      return false;
+      break;
+  }
+  return false;
+}
+
+// determines if an instruction is a memRead instruction
+bool isMemWrite(uint32_t opcode){
+  switch (opcode){
+    case 0x28:
+      return true;
+      break;
+    case 0x29:
+      return true;
+      break;
+    case 0x2b:
+      return true;
+      break;
+    default:
+      return false;
+      break;
+  }
+  return false;
 }
 
 bool isValidInstruction(uint32_t opcode, uint32_t func_code) {
@@ -914,8 +967,8 @@ void exSection() {
     ex_mem.IR = id_ex_cpy.IR;
 
     bool regWrite = isRegWrite(opCode, func_code);
-    bool memWrite = false;
-    bool memRead = false;
+    bool memWrite = isMemWrite(opCode);
+    bool memRead = isMemRead(opCode);
 
     if (opCode == 0) {
       ex_mem.RD = rd;
@@ -1170,13 +1223,11 @@ void exSection() {
       location = A + imm; 
       ex_mem.ALUOut = location;
       ex_mem.B = ex_mem.B & (0x000000ff);
-      memWrite = true;
       advance_pc(4);
       break;
     }
     case 0x29:
     {
-      memWrite = true;
       // store halfword 
       if (mostSig == 1) {
           imm = imm | 0xffff0000;
@@ -1190,7 +1241,6 @@ void exSection() {
     }
     case 0x2b:
     {
-      memWrite = true;
       // store word
       if (mostSig == 1) {
           imm = imm | 0xffff0000;
