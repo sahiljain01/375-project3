@@ -723,7 +723,6 @@ void ifSection() {
     /* IF section  */
     uint32_t instruction = 0;
     if (load_use_stall_delay) {
-      PC = PC - 4;
       cout << "delaying now \n";
       load_use_stalls = load_use_stalls - 1;
       if (load_use_stalls == 0) {
@@ -778,7 +777,7 @@ void idSection() {
     if (load_use_stall_delay) {
       return;
     }
-    
+
     uint32_t instruction = if_id_cpy.IR;
     load_use_stall = false;
     id_ex.opcode = instruction >> 26;
@@ -1430,7 +1429,7 @@ int runCycles(uint32_t cycles) {
     /* Start Updating the Copies */
     if_id_cpy.nPC = if_id.nPC;
     if_id_cpy.IR = if_id.IR;
-
+    
     id_ex_cpy.IR = id_ex.IR;
     id_ex_cpy.opcode = id_ex.opcode;
     id_ex_cpy.func_code = id_ex.func_code;
