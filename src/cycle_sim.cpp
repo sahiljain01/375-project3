@@ -765,9 +765,9 @@ void ifSection() {
 
 void idSection() {
     // retrieve and decode the instruction
-    if (load_use_stall_delay) {
-      return;
-    }
+    // if (load_use_stall_delay) {
+    //   return;
+    // }
     uint32_t instruction = if_id_cpy.IR;
     load_use_stall = false;
     id_ex.opcode = instruction >> 26;
@@ -826,9 +826,6 @@ void idSection() {
     // }
 
     bool isBranch = false;
-
-
-
     // ex hazard forwarding to ID stage bc of branches
     if (((id_ex.opcode >= 2) && (id_ex.opcode <= 7)) || ((id_ex.opcode == 0) && (id_ex.func_code == 0x8))) {
       isBranch = true;
@@ -836,6 +833,8 @@ void idSection() {
     if (!isBranch){
       advance_pc(4);
     }
+
+    cout << "isbranch: " << isBranch << '\n';
 
       // // case when we have a load, 2 things in the middle, and then a branch
       // if ((mem_wb_cpy.regWrite && (mem_wb_cpy.RD != 0)) && (mem_wb_cpy.RD == id_ex.RS)) {
