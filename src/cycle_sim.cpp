@@ -935,7 +935,7 @@ void idSection() {
       // blez
       case (0x6):
 
-        cout << (int)id_ex.A << '\n';
+        cout << "ID EX A FOR BLEZ: " << (int)id_ex.A << '\n';
         if ((int)id_ex.A <= 0) {
             advance_pc(id_ex.seimmed << 2);
         }
