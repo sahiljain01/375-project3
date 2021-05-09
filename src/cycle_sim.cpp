@@ -781,29 +781,11 @@ void idSection() {
     id_ex.shamt = instruction << 21 >> 27;
     id_ex.seimmed = (id_ex.immed >> 15 == 0) ? (uint32_t)id_ex.immed : ((uint32_t)id_ex.immed | 0xffff0000);
     id_ex.IR = instruction;
-    bool memRead = false;
+    bool memRead = isMemRead(id_ex.opcode);
 
     if ((!isValidInstruction(id_ex.opcode, id_ex.func_code)) && (instruction != 0xfeedfeed)) {
       handleException(false);
       return;
-    }
-
-    switch (id_ex.opcode) {
-      case 0x25:
-      {
-        memRead = true;
-        break;
-      }
-    case 0x24:
-      {
-        memRead = true;
-        break;
-      }
-      case 0x23:
-      {
-        memRead = true;
-        break;
-      }
     }
 
     // if (memRead && ((id_ex_cpy.RT == id_ex.RS) || (id_ex_cpy.RT == id_ex.RT))) {
@@ -835,7 +817,7 @@ void idSection() {
       advance_pc(4);
     }
 
-    cout << "isbranch: " << isBranch << '\n';
+    // cout << "isbranch: " << isBranch << '\n';
 
       // // case when we have a load, 2 things in the middle, and then a branch
       // if ((mem_wb_cpy.regWrite && (mem_wb_cpy.RD != 0)) && (mem_wb_cpy.RD == id_ex.RS)) {
@@ -946,8 +928,7 @@ void idSection() {
       // jump register
       case (0x0):
         if (id_ex.func_code == 0x8) {
-          PC = nPC; 
-          nPC = id_ex.A;
+          PC = id_ex.A;
         }
         break;
       default:
