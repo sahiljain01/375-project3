@@ -833,45 +833,45 @@ void idSection() {
     if (((id_ex.opcode >= 2) && (id_ex.opcode <= 7)) || ((id_ex.opcode == 0) && (id_ex.func_code == 0x8))) {
       isBranch = true;
 
-      // case when we have a load, 2 things in the middle, and then a branch
-      if ((mem_wb_cpy.regWrite && (mem_wb_cpy.RD != 0)) && (mem_wb_cpy.RD == id_ex.RS)) {
-        id_ex.A = mem_wb_cpy.memData;
-      }
-      else if ((mem_wb_cpy.regWrite && (mem_wb_cpy.RD != 0)) && (mem_wb_cpy.RD == id_ex.RT)) {
-        id_ex.B = mem_wb_cpy.memData;
-      }
-      // case when we have a load, 1 thing in the middle, and then a branch (stall by 1 cycles)
-      if ((ex_mem_cpy.regWrite && (ex_mem_cpy.RD != 0)) && (ex_mem_cpy.RD == id_ex.RS)) {
-        instruction = 0;
-        id_ex = IDEX();
-        load_use_stall = true;
-      }
-      else if ((ex_mem_cpy.regWrite && (ex_mem_cpy.RD != 0)) && (ex_mem_cpy.RD == id_ex.RT)) {
-        instruction = 0;
-        id_ex = IDEX();
-        load_use_stall = true;
-      }
-      // case when we have a load, and then a branch
-      if ((id_ex_cpy.regWrite && (id_ex_cpy.RD != 0)) && (id_ex_cpy.RD == id_ex.RS)) {
-        instruction = 0;
-        id_ex = IDEX();
-        load_use_stall = true;
-      }
-      else if ((id_ex_cpy.regWrite && (id_ex_cpy.RD != 0)) && (id_ex_cpy.RD == id_ex.RT)) {
-        instruction = 0;
-        id_ex = IDEX();
-        load_use_stall = true;
-      }
+      // // case when we have a load, 2 things in the middle, and then a branch
+      // if ((mem_wb_cpy.regWrite && (mem_wb_cpy.RD != 0)) && (mem_wb_cpy.RD == id_ex.RS)) {
+      //   id_ex.A = mem_wb_cpy.memData;
+      // }
+      // else if ((mem_wb_cpy.regWrite && (mem_wb_cpy.RD != 0)) && (mem_wb_cpy.RD == id_ex.RT)) {
+      //   id_ex.B = mem_wb_cpy.memData;
+      // }
+      // // case when we have a load, 1 thing in the middle, and then a branch (stall by 1 cycles)
+      // if ((ex_mem_cpy.regWrite && (ex_mem_cpy.RD != 0)) && (ex_mem_cpy.RD == id_ex.RS)) {
+      //   instruction = 0;
+      //   id_ex = IDEX();
+      //   load_use_stall = true;
+      // }
+      // else if ((ex_mem_cpy.regWrite && (ex_mem_cpy.RD != 0)) && (ex_mem_cpy.RD == id_ex.RT)) {
+      //   instruction = 0;
+      //   id_ex = IDEX();
+      //   load_use_stall = true;
+      // }
+      // // case when we have a load, and then a branch
+      // if ((id_ex_cpy.regWrite && (id_ex_cpy.RD != 0)) && (id_ex_cpy.RD == id_ex.RS)) {
+      //   instruction = 0;
+      //   id_ex = IDEX();
+      //   load_use_stall = true;
+      // }
+      // else if ((id_ex_cpy.regWrite && (id_ex_cpy.RD != 0)) && (id_ex_cpy.RD == id_ex.RT)) {
+      //   instruction = 0;
+      //   id_ex = IDEX();
+      //   load_use_stall = true;
+      // }
 
-      // case where we have an add, smt in the middle, and then a branch
-      if ((ex_mem_cpy.regWrite && (ex_mem_cpy.RD != 0)) && (id_ex.RD == id_ex.RS)) {
-        // no stall
-        id_ex.A = ex_mem_cpy.ALUOut;
-      }
-      if ((ex_mem_cpy.regWrite && (ex_mem_cpy.RD != 0)) && (id_ex.RD == id_ex.RT)) {
-        // no stall
-        id_ex.B = ex_mem_cpy.ALUOut;
-      }
+      // // case where we have an add, smt in the middle, and then a branch
+      // if ((ex_mem_cpy.regWrite && (ex_mem_cpy.RD != 0)) && (id_ex.RD == id_ex.RS)) {
+      //   // no stall
+      //   id_ex.A = ex_mem_cpy.ALUOut;
+      // }
+      // if ((ex_mem_cpy.regWrite && (ex_mem_cpy.RD != 0)) && (id_ex.RD == id_ex.RT)) {
+      //   // no stall
+      //   id_ex.B = ex_mem_cpy.ALUOut;
+      // }
 
       // case where we have an add, and then a branch
       // same id_ex.cpy but we don't store regWrite in id_ex.
