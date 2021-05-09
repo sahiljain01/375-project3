@@ -733,7 +733,9 @@ void ifSection() {
     if (load_use_stall) {
       load_use_stall_delay = true;
       load_use_stall = false;
-      if_instruction = myMem->getMemValue(PC_cpy, instruction, WORD_SIZE);
+      myMem->getMemValue(PC_cpy, instruction, WORD_SIZE);
+      if_instruction = instruction;
+      PC_cpy = PC;
       return;
     }
 
