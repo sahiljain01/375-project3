@@ -833,6 +833,10 @@ void idSection() {
     if (((id_ex.opcode >= 2) && (id_ex.opcode <= 7)) || ((id_ex.opcode == 0) && (id_ex.func_code == 0x8))) {
       isBranch = true;
 
+    if (!isBranch){
+      advance_pc(4);
+    }
+
       // // case when we have a load, 2 things in the middle, and then a branch
       // if ((mem_wb_cpy.regWrite && (mem_wb_cpy.RD != 0)) && (mem_wb_cpy.RD == id_ex.RS)) {
       //   id_ex.A = mem_wb_cpy.memData;
@@ -1035,50 +1039,50 @@ void exSection() {
                 }
             }
             ex_mem.ALUOut = res;
-            advance_pc(4);
+            //advance_pc(4);
             break;
            }
           // addu
           case 0x21:
             ex_mem.ALUOut = A + B;
-            advance_pc(4);
+            //advance_pc(4);
             break;
           // and
           case 0x24:
             ex_mem.ALUOut = A & B;
-            advance_pc(4);
+            //advance_pc(4);
             break;
           // nor
           case 0x27:
             ex_mem.ALUOut = ~(A | B);
-            advance_pc(4);
+            //advance_pc(4);
             break;
           // or
           case 0x25:
             ex_mem.ALUOut = A | B;
-            advance_pc(4);
+            //advance_pc(4);
             break;
           // slt (signed)
           case 0x2a:
             ex_mem.ALUOut = ((int)A < (int)B) ? 1 : 0;
-            advance_pc(4);
+            //advance_pc(4);
             break;
           // sltu
           case 0x2b:
             ex_mem.ALUOut = (A < B) ? 1 : 0;
-            advance_pc(4);
+            //advance_pc(4);
             break;
           // sll
           case 0x00:
             ex_mem.ALUOut = (B << shamt);
-            if (!load_use_stall) {
-              advance_pc(4);
-            }
+            // if (!load_use_stall) {
+            //   advance_pc(4);
+            // }
             break;
           // srl
           case 0x02:
             ex_mem.ALUOut = (B >> shamt);
-            advance_pc(4);
+            //advance_pc(4);
             break;
           // sub (signed)
           case 0x22:
@@ -1101,14 +1105,14 @@ void exSection() {
                     return;
                 }
             }
-            advance_pc(4);
+            //advance_pc(4);
             ex_mem.ALUOut = res;
             break;
           }
           // subu
           case 0x23:
             ex_mem.ALUOut = A - B;
-            advance_pc(4);
+            //advance_pc(4);
             break;
         }
         break;
@@ -1133,7 +1137,7 @@ void exSection() {
           }
       }
       ex_mem.ALUOut = res;
-      advance_pc(4);
+      //advance_pc(4);
       break;
     }
     case 0x9:
@@ -1144,21 +1148,21 @@ void exSection() {
           imm = imm | 0xffff0000;
       }
       ex_mem.ALUOut = A + imm;
-      advance_pc(4);
+      //advance_pc(4);
       break;
     }
     case 0xc:
     {
       // and immediate unsigned
       ex_mem.ALUOut = A & imm;
-      advance_pc(4);
+      //advance_pc(4);
       break;
     }
     case 0xd:
     {
       // or immediate
       ex_mem.ALUOut = A | imm;
-      advance_pc(4);
+      //advance_pc(4);
       break;
     }
     case 0xa:
@@ -1168,14 +1172,14 @@ void exSection() {
           imm = imm | 0xffff0000;
       }
       ex_mem.ALUOut = ((int)A < (int)imm) ? 1 : 0;
-      advance_pc(4);
+      //advance_pc(4);
       break;
     }
     case 0xb:
     {
       // set less than immediate unsigned
       ex_mem.ALUOut = (A < imm) ? 1 : 0;
-      advance_pc(4);
+      //advance_pc(4);
       break;
     }
     case 0x24:
@@ -1187,7 +1191,7 @@ void exSection() {
       }
       uint32_t res = imm + A;
       ex_mem.ALUOut = res;
-      advance_pc(4);
+      //advance_pc(4);
       break;
     }
     case 0x25:
@@ -1199,7 +1203,7 @@ void exSection() {
       }
       uint32_t res = imm + A;
       ex_mem.ALUOut = res;
-      advance_pc(4);
+      //advance_pc(4);
       break;
     }
     case 0xf:
@@ -1207,7 +1211,7 @@ void exSection() {
       cout << '\n' << "was inside the load upper immediate stage " << hex << PC << "\n";
       // load upper immediate
       ex_mem.ALUOut = (imm << 16);
-      advance_pc(4);
+      //advance_pc(4);
       break;
     }
     case 0x23:
@@ -1219,7 +1223,7 @@ void exSection() {
       }
       res = imm + A;
       ex_mem.ALUOut = res;
-      advance_pc(4);
+      //advance_pc(4);
       break;
     }
     case 0x28:
@@ -1232,7 +1236,7 @@ void exSection() {
       location = A + imm; 
       ex_mem.ALUOut = location;
       ex_mem.B = ex_mem.B & (0x000000ff);
-      advance_pc(4);
+      //advance_pc(4);
       break;
     }
     case 0x29:
@@ -1245,7 +1249,7 @@ void exSection() {
       location = A + imm; 
       ex_mem.B = ex_mem.B & (0x0000ffff);
       ex_mem.ALUOut = location;
-      advance_pc(4);
+      //advance_pc(4);
       break;
     }
     case 0x2b:
@@ -1257,7 +1261,7 @@ void exSection() {
       uint32_t location = 0;
       location = A + imm;
       ex_mem.ALUOut = location;
-      advance_pc(4);
+      //advance_pc(4);
       break;
     }
   }
