@@ -1340,7 +1340,7 @@ int runCycles(uint32_t cycles) {
       ex_fwd_A = 1;
       cout << "a from wb" << '\n';
     }
-    else if ((mem_wb.regWrite && (mem_wb.RD != 0)) && !(ex_mem.regWrite && (ex_mem.RD != 0) && (ex_mem.RD == id_ex.RT)) && (mem_wb.RD == id_ex.RT)) {
+    if ((mem_wb.regWrite && (mem_wb.RD != 0)) && !(ex_mem.regWrite && (ex_mem.RD != 0) && (ex_mem.RD == id_ex.RT)) && (mem_wb.RD == id_ex.RT)) {
       ex_fwd_B = 1;
       cout << "b from wb" << '\n';
     }
