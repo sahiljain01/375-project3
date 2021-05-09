@@ -3,7 +3,7 @@
     lw $t1, next+4
     nop
     nop
-    bne $t1, $zero, afterbranch
+    beq $t1, $zero, afterbranch
     addi $t3, $zero, 0x44
 next:
     .word 0xfeedfeed
