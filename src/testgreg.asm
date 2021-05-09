@@ -7,7 +7,7 @@
     addi $t3, $zero, 0x44
 next:
     .word 0xfeedfeed
-    .word 0x00000016
+    .word 0x00000000
 afterbranch:
     addi $t2, $zero, 0x99
     .word 0xfeedfeed
