@@ -724,8 +724,8 @@ void ifSection() {
     /* IF section  */
     uint32_t instruction = 0;
     if (load_use_stall_delay) {
-      load_use_stall--;
-      if (load_use_stall == 0) {
+      load_use_stalls = load_use_stalls - 1;
+      if (load_use_stalls == 0) {
         load_use_stall_delay = false;
       }
       return;
