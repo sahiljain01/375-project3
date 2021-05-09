@@ -937,11 +937,17 @@ void idSection() {
         if (id_ex.A <= id_ex.B) {
             advance_pc(id_ex.seimmed << 2);
         }
+        else {
+          advance_pc(4);
+        }
         break;
       // bgtz
       case (0x7):
         if (id_ex.A > id_ex.B) {
             advance_pc(id_ex.seimmed << 2);
+        }
+        else {
+          advance_pc(4);
         }
         break;
       // jump register
