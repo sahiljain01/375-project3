@@ -1329,16 +1329,20 @@ int runCycles(uint32_t cycles) {
 
     if ((ex_mem.regWrite && (ex_mem.RD != 0)) && (ex_mem.RD == id_ex.RS)) {
       ex_fwd_A = 2;
+      cout << "a from exmem" << '\n';
     }
     if ((ex_mem.regWrite && (ex_mem.RD != 0)) && (ex_mem.RD == id_ex.RT)) {
       ex_fwd_B = 2;
+      cout << "b from exmem" << '\n';
     }
 
     if ((mem_wb.regWrite && (mem_wb.RD != 0)) && !(ex_mem.regWrite && (ex_mem.RD != 0) && (ex_mem.RD == id_ex.RS)) && (mem_wb.RD == id_ex.RS)) {
       ex_fwd_A = 1;
+      cout << "a from wb" << '\n';
     }
     else if ((mem_wb.regWrite && (mem_wb.RD != 0)) && !(ex_mem.regWrite && (ex_mem.RD != 0) && (ex_mem.RD == id_ex.RT)) && (mem_wb.RD == id_ex.RT)) {
       ex_fwd_B = 1;
+      cout << "b from wb" << '\n';
     }
     
     bool halt = wbSection();
