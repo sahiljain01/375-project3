@@ -987,7 +987,7 @@ void exSection() {
     }
     else if (opCode == 0x3) {
       ex_mem.RD = rd;
-      ex_mem.B = id_ex_cpy.A;
+      ex_mem.ALUOut = id_ex_cpy.A;
     }
     else {
       ex_mem.RD = rt;
@@ -1110,10 +1110,10 @@ void exSection() {
             ex_mem.ALUOut = A - B;
             //advance_pc(4);
             break;
-          // jal
-          case 0x8:
-            ex_mem.ALUOut = A;
-            break;
+          // jr
+          // case 0x8:
+          //   ex_mem.ALUOut = A;
+          //   break;
         }
     break;
     }
