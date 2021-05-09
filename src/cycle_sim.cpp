@@ -724,6 +724,7 @@ void ifSection() {
     uint32_t instruction = 0;
     if (load_use_stall_delay) {
       cout << "delaying now \n";
+      PC = PC-4;
       load_use_stalls = load_use_stalls - 1;
       if (load_use_stalls == 0) {
         load_use_stall_delay = false;
