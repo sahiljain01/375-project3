@@ -810,7 +810,7 @@ void idSection() {
         break;
       }
     }
-    if (ex_mem.memRead && ((ex_mem.RT == id_ex.RS) || (ex_mem.RT == id_ex.RT))) {
+    if (ex_mem.memRead && ((ex_mem.RD == id_ex.RS) || (ex_mem.RD == id_ex.RT))) {
       cout << "inside this if statement";
       instruction = 0;
       id_ex.opcode = instruction >> 26;
