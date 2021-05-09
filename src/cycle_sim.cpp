@@ -904,7 +904,10 @@ void idSection() {
       // bne
       case (0x5):
         if (id_ex.A != id_ex.B) {
+            cout << "old pc: " << PC << '\n';
             advance_pc(id_ex.seimmed << 2);
+            cout << "we branched" << '\n';
+            cout << "new pc: " << PC << '\n';
         }
         break;
       // jump
