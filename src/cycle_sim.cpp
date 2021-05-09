@@ -796,8 +796,8 @@ void idSection() {
       }
     case 0x24:
       {
-	memRead = true;
-	break;
+        memRead = true;
+        break;
       }
       case 0x23:
       {
@@ -829,6 +829,7 @@ void idSection() {
     // ex hazard forwarding to ID stage bc of branches
     if (((id_ex.opcode >= 2) && (id_ex.opcode <= 7)) || ((id_ex.opcode == 0) && (id_ex.func_code == 0x8))) {
       isBranch = true;
+    }
 
     if (!isBranch){
       advance_pc(4);
@@ -878,21 +879,18 @@ void idSection() {
 
       // case where we have an add, and then a branch
       // same id_ex.cpy but we don't store regWrite in id_ex.
-      if ((id_ex_cpy.regWrite && (id_ex_cpy.RD != 0)) && (id_ex.RD == id_ex.RS)) {
-        // stall by 1 cycle
-        instruction = 0;
-        id_ex = IDEX();
-        load_use_stall = true;
-      }
-      if ((id_ex_cpy.regWrite && (id_ex_cpy.RD != 0)) && (id_ex.RD == id_ex.RT)) {
-        // stall by 1 cycle
-        instruction = 0;
-        id_ex = IDEX();
-        load_use_stall = true;
-      }
-    
-
-      } 
+      // if ((id_ex_cpy.regWrite && (id_ex_cpy.RD != 0)) && (id_ex.RD == id_ex.RS)) {
+      //   // stall by 1 cycle
+      //   instruction = 0;
+      //   id_ex = IDEX();
+      //   load_use_stall = true;
+      // }
+      // if ((id_ex_cpy.regWrite && (id_ex_cpy.RD != 0)) && (id_ex.RD == id_ex.RT)) {
+      //   // stall by 1 cycle
+      //   instruction = 0;
+      //   id_ex = IDEX();
+      //   load_use_stall = true;
+      // }
 
     uint32_t mostSig_ex = id_ex.immed >> 15; // most significant bit in immediate
     uint32_t imm_ex = 0;
