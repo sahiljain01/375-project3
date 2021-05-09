@@ -446,7 +446,7 @@ void handleException(bool isArithmetic) {
   id_ex.A = 0;
   id_ex.B = 0;
   id_ex.seimmed = 0;
-  id_ex.IR = 0;
+  //id_ex.IR = 0;
 
   if (isArithmetic) {
     /* Start Updating the Copies */
@@ -459,17 +459,17 @@ void handleException(bool isArithmetic) {
     ex_mem.memWrite = 0;
     ex_mem.memRead = 0;
     ex_mem.IR = 0;
-    id_ex_cpy.opcode = 0;
-    id_ex_cpy.func_code = 0;
-    id_ex_cpy.nPC = 0;
-    id_ex_cpy.RS = 0;
-    id_ex_cpy.RT = 0;
-    id_ex_cpy.RD = 0;
-    id_ex_cpy.immed = 0;
-    id_ex_cpy.A = 0;
-    id_ex_cpy.B = 0;
-    id_ex_cpy.seimmed = 0;
-    id_ex_cpy.IR = 0;
+    // id_ex_cpy.opcode = 0;
+    // id_ex_cpy.func_code = 0;
+    // id_ex_cpy.nPC = 0;
+    // id_ex_cpy.RS = 0;
+    // id_ex_cpy.RT = 0;
+    // id_ex_cpy.RD = 0;
+    // id_ex_cpy.immed = 0;
+    // id_ex_cpy.A = 0;
+    // id_ex_cpy.B = 0;
+    // id_ex_cpy.seimmed = 0;
+    // id_ex_cpy.IR = 0;
   }
   PC = 0x8000;
   PC_cpy = 0x8000;
@@ -487,6 +487,18 @@ bool isRegWrite(uint32_t opcode, uint32_t func_code) {
     case 0x2:
       return false;
       break;
+    case 0x4:
+      return false;
+      break;
+    case 0x5:
+      return false;
+      break;
+    case 0x6:
+      return false;
+      break;
+    case 0x7:
+      return false;
+      break;
     case 0x28:
       return false;
       break;
@@ -501,6 +513,44 @@ bool isRegWrite(uint32_t opcode, uint32_t func_code) {
       break;
   }
   return true;
+}
+
+// determines if an instruction is a memRead instruction
+bool isMemRead(uint32_t opcode){
+  switch (opcode){
+    case 0x23:
+      return true;
+      break;
+    case 0x24:
+      return true;
+      break;
+    case 0x25:
+      return true;
+      break;
+    default:
+      return false;
+      break;
+  }
+  return false;
+}
+
+// determines if an instruction is a memRead instruction
+bool isMemWrite(uint32_t opcode){
+  switch (opcode){
+    case 0x28:
+      return true;
+      break;
+    case 0x29:
+      return true;
+      break;
+    case 0x2b:
+      return true;
+      break;
+    default:
+      return false;
+      break;
+  }
+  return false;
 }
 
 bool isValidInstruction(uint32_t opcode, uint32_t func_code) {
@@ -925,8 +975,11 @@ void exSection() {
     ex_mem.IR = id_ex_cpy.IR;
 
     bool regWrite = isRegWrite(opCode, func_code);
-    bool memWrite = false;
-    bool memRead = false;
+    if (id_ex_cpy.IR == 0xfeedfeed){
+      regWrite = false;
+    }
+    bool memWrite = isMemWrite(opCode);
+    bool memRead = isMemRead(opCode);
 
     if (opCode == 0) {
       ex_mem.RD = rd;
@@ -945,13 +998,13 @@ void exSection() {
     // add ex stage
     
     if (ex_fwd_A == 1) {
-      A = mem_wb_cpy.memData;
+      A = mem_wb_cpy.ALUOut;
     }
     if (ex_fwd_A == 2) {
       A = ex_mem_cpy.ALUOut;
     }
     if (ex_fwd_B == 1) {
-      B = mem_wb_cpy.memData;
+      B = mem_wb_cpy.ALUOut;
     }
     if (ex_fwd_B == 2) {
      B = ex_mem_cpy.ALUOut;
@@ -977,7 +1030,7 @@ void exSection() {
                 if (sigbit_rd != sigbit_rs) {
                     /* TODO: Handle Exceptions! */
                     handleException(true);
-                    break;
+                    return;
                 }
             }
             ex_mem.ALUOut = res;
@@ -1037,14 +1090,14 @@ void exSection() {
                 if (sigbit_rd == 1) {
                     /* TODO: Handle Exceptions! */
                     handleException(true);
-                    break;
+                    return;
                 }
             }
             else if ((sigbit_rs == 1) && (sigbit_rt == 0)) {
                 if (sigbit_rd == 0) {
                     /* TODO: Handle Exceptions! */
                     handleException(true);
-                    break;
+                    return;
                 }
             }
             advance_pc(4);
@@ -1075,7 +1128,7 @@ void exSection() {
           if (sigbit_rd != sigbit_rs) {
               /* TODO: Handle Exception! */
               handleException(true);
-              break;
+              return;
           }
       }
       ex_mem.ALUOut = res;
@@ -1133,7 +1186,6 @@ void exSection() {
       }
       uint32_t res = imm + A;
       ex_mem.ALUOut = res;
-      memRead = true;
       advance_pc(4);
       break;
     }
@@ -1145,7 +1197,6 @@ void exSection() {
           imm = imm | 0xfffc0000;
       }
       uint32_t res = imm + A;
-      memRead = true;
       ex_mem.ALUOut = res;
       advance_pc(4);
       break;
@@ -1167,13 +1218,11 @@ void exSection() {
       }
       res = imm + A;
       ex_mem.ALUOut = res;
-      memRead = true;
       advance_pc(4);
       break;
     }
     case 0x28:
     {
-      regWrite = false;
       // store byte
       if (mostSig == 1) {
           imm = imm | 0xffff0000;
@@ -1182,14 +1231,11 @@ void exSection() {
       location = A + imm; 
       ex_mem.ALUOut = location;
       ex_mem.B = ex_mem.B & (0x000000ff);
-      memWrite = true;
       advance_pc(4);
       break;
     }
     case 0x29:
     {
-      regWrite = false;
-      memWrite = true;
       // store halfword 
       if (mostSig == 1) {
           imm = imm | 0xffff0000;
@@ -1203,8 +1249,6 @@ void exSection() {
     }
     case 0x2b:
     {
-      regWrite = false;
-      memWrite = true;
       // store word
       if (mostSig == 1) {
           imm = imm | 0xffff0000;
@@ -1215,9 +1259,6 @@ void exSection() {
       advance_pc(4);
       break;
     }
-  }
-  if (rd == 0) {
-    regWrite = false;
   }
   ex_mem.memRead = memRead;
   ex_mem.memWrite = memWrite;
@@ -1337,19 +1378,29 @@ int runCycles(uint32_t cycles) {
     // Ex-Hazard
     ex_fwd_A = 0;
     ex_fwd_B = 0;
+    cout << cyclesElapsed << '\n';
+    cout << "ex mem regwrite:" << ex_mem.regWrite << '\n';
+    cout << "ex mem rd:" << ex_mem.RD << '\n';
+    cout << "id ex rs:" << id_ex.RS << '\n';
+    cout << "id ex rt:" << id_ex.RT << '\n';
+    cout << '\n';
 
     if ((ex_mem.regWrite && (ex_mem.RD != 0)) && (ex_mem.RD == id_ex.RS)) {
       ex_fwd_A = 2;
+      cout << "a from exmem" << '\n';
     }
     if ((ex_mem.regWrite && (ex_mem.RD != 0)) && (ex_mem.RD == id_ex.RT)) {
       ex_fwd_B = 2;
+      cout << "b from exmem" << '\n';
     }
 
     if ((mem_wb.regWrite && (mem_wb.RD != 0)) && !(ex_mem.regWrite && (ex_mem.RD != 0) && (ex_mem.RD == id_ex.RS)) && (mem_wb.RD == id_ex.RS)) {
       ex_fwd_A = 1;
+      cout << "a from wb" << '\n';
     }
-    else if ((mem_wb.regWrite && (mem_wb.RD != 0)) && !(ex_mem.regWrite && (ex_mem.RD != 0) && (ex_mem.RD == id_ex.RT)) && (mem_wb.RD == id_ex.RT)) {
+    if ((mem_wb.regWrite && (mem_wb.RD != 0)) && !(ex_mem.regWrite && (ex_mem.RD != 0) && (ex_mem.RD == id_ex.RT)) && (mem_wb.RD == id_ex.RT)) {
       ex_fwd_B = 1;
+      cout << "b from wb" << '\n';
     }
     
     bool halt = wbSection();
