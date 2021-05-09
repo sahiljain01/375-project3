@@ -934,13 +934,13 @@ void exSection() {
     // add ex stage
     
     if (ex_fwd_A == 1) {
-      A = mem_wb_cpy.memData;
+      A = mem_wb_cpy.ALUOut;
     }
     if (ex_fwd_A == 2) {
       A = ex_mem_cpy.ALUOut;
     }
     if (ex_fwd_B == 1) {
-      B = mem_wb_cpy.memData;
+      B = mem_wb_cpy.ALUOut;
     }
     if (ex_fwd_B == 2) {
      B = ex_mem_cpy.ALUOut;
