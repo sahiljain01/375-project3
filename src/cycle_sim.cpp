@@ -723,12 +723,12 @@ void ifSection() {
     /* IF section  */
     uint32_t instruction = 0;
     if (load_use_stall_delay) {
+      PC = PC - 4;
       cout << "delaying now \n";
       load_use_stalls = load_use_stalls - 1;
       if (load_use_stalls == 0) {
         load_use_stall_delay = false;
         if_id.IR = if_instruction;
-        PC_cpy = PC;
       }
       return;
     }
