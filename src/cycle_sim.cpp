@@ -1162,7 +1162,6 @@ void exSection() {
     }
     case 0x28:
     {
-      regWrite = false;
       // store byte
       if (mostSig == 1) {
           imm = imm | 0xffff0000;
@@ -1177,7 +1176,6 @@ void exSection() {
     }
     case 0x29:
     {
-      regWrite = false;
       memWrite = true;
       // store halfword 
       if (mostSig == 1) {
@@ -1192,7 +1190,6 @@ void exSection() {
     }
     case 0x2b:
     {
-      regWrite = false;
       memWrite = true;
       // store word
       if (mostSig == 1) {
@@ -1204,9 +1201,6 @@ void exSection() {
       advance_pc(4);
       break;
     }
-  }
-  if (rd == 0) {
-    regWrite = false;
   }
   ex_mem.memRead = memRead;
   ex_mem.memWrite = memWrite;
