@@ -3,7 +3,7 @@
     lw $t1, next+4
     nop
     nop
-    j afterbranch
+    jal afterbranch
     addi $t1, $t1, 0x2
 next:
     .word 0xfeedfeed

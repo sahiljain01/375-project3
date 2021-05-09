@@ -922,9 +922,8 @@ void idSection() {
       // jump and link
       case (0x3):
         id_ex.RD = 31;
-        id_ex.A = nPC + 4;
-        PC = nPC; 
-        nPC = (PC & 0xf0000000) | (instruction << 6) >> 4;
+        id_ex.A = PC + 8;
+        PC = (PC & 0xf0000000) | (target << 2);
         break;
       // blez
       case (0x6):
@@ -1111,8 +1110,12 @@ void exSection() {
             ex_mem.ALUOut = A - B;
             //advance_pc(4);
             break;
+          // jal
+          case 0x8:
+            ex_mem.ALUOut = A;
+            break;
         }
-        break;
+    break;
     }
     // rest are I-Types
     case 0x8:
