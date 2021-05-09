@@ -421,8 +421,8 @@ bool cacheAccess(bool isICache, uint32_t memAddress, uint32_t *data, bool isRead
 // advance PC function
 void advance_pc(uint32_t offset)
 {
-    PC  =  nPC;
-   nPC  += offset;
+    //PC  =  nPC;
+  PC  += offset;
 }
 
 void handleException(bool isArithmetic) {
@@ -911,7 +911,7 @@ void idSection() {
         if (id_ex.A != id_ex.B) {
             cout << "old pc: " << PC << '\n';
             advance_pc(id_ex.seimmed << 2);
-            cout << "offset" << (id_ex.seimmed << 2) << '\n';
+            cout << "offset: " << (id_ex.seimmed << 2) << '\n';
             cout << "we branched" << '\n';
             cout << "new pc: " << PC << '\n';
         }
