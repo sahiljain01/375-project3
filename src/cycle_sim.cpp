@@ -857,6 +857,7 @@ void idSection() {
       if ((ex_mem_cpy.regWrite && (ex_mem_cpy.RD != 0)) && (ex_mem_cpy.RD == id_ex.RS)) {
         instruction = 0;
         id_ex = IDEX();
+        id_ex.insertedNOP = true;
         load_use_stall = true;
         load_use_stalls = 1;
       }
@@ -864,6 +865,7 @@ void idSection() {
         instruction = 0;
         id_ex = IDEX();
         load_use_stall = true;
+        id_ex.insertedNOP = true;
         load_use_stalls = 1;
       }
       // case when we have a load, and then a branch
@@ -871,12 +873,14 @@ void idSection() {
         instruction = 0;
         id_ex = IDEX();
         load_use_stall = true;
+        id_ex.insertedNOP = true;
         load_use_stalls = 2;
       }
       else if ((id_ex_cpy.regWrite && (id_ex_cpy.RD != 0)) && (id_ex_cpy.RD == id_ex.RT)) {
         instruction = 0;
         id_ex = IDEX();
         load_use_stall = true;
+        id_ex.insertedNOP = true;
         load_use_stalls = 2;
       }
 
@@ -897,6 +901,7 @@ void idSection() {
         instruction = 0;
         id_ex = IDEX();
         load_use_stall = true;
+        id_ex.insertedNOP = true;
         load_use_stalls = 1;
       }
       if ((id_ex_cpy.regWrite && (id_ex_cpy.RD != 0)) && (id_ex.RD == id_ex.RT)) {
@@ -904,6 +909,7 @@ void idSection() {
         instruction = 0;
         id_ex = IDEX();
         load_use_stall = true;
+        id_ex.insertedNOP = true;
         load_use_stalls = 1;
       }
     } 
