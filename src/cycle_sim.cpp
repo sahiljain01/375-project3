@@ -554,7 +554,6 @@ bool isMemWrite(uint32_t opcode){
 }
 
 bool isValidInstruction(uint32_t opcode, uint32_t func_code) {
-  cout << '\n' << hex << opcode << ' ' << hex << func_code << '\n';
   switch (opcode){
     // r-type instructions
     case 0:
@@ -724,6 +723,7 @@ void ifSection() {
     /* IF section  */
     uint32_t instruction = 0;
     if (load_use_stall_delay) {
+      cout << "delaying now \n";
       load_use_stalls = load_use_stalls - 1;
       if (load_use_stalls == 0) {
         load_use_stall_delay = false;
@@ -733,10 +733,12 @@ void ifSection() {
       return;
     }
     if (load_use_stall) {
+      cout << "hit a load use stall \n";
       load_use_stall_delay = true;
       load_use_stall = false;
       myMem->getMemValue(PC_cpy, instruction, WORD_SIZE);
       if_instruction = instruction;
+      cout << if_instruction << "\n";
       return;
     }
 
@@ -746,7 +748,6 @@ void ifSection() {
     // }
 
     myMem->getMemValue(PC_cpy, instruction, WORD_SIZE);
-    cout << hex << instruction << '\n' << "PC:" << hex << PC << '\n';
     if_id.IR = 0;
 
     if (!feedfeed_hit) {
@@ -1206,7 +1207,6 @@ void exSection() {
     }
     case 0xf:
     {
-      cout << '\n' << "was inside the load upper immediate stage " << hex << PC << "\n";
       // load upper immediate
       ex_mem.ALUOut = (imm << 16);
       advance_pc(4);
@@ -1290,7 +1290,6 @@ void memSection() {
   if (memRead_mem || memWrite_mem) {
     opcode = mem_wb.IR >> 26;
     func_code = mem_wb.IR  & (63);
-    cout << "opcode: " << hex << opcode << '\n';
     switch (opcode) {
       case 0x28:
 	{
@@ -1329,7 +1328,6 @@ void memSection() {
           break;
         }
       default:
-	cout << "something went wrong!!";
 	break;
 
     }
@@ -1381,12 +1379,12 @@ int runCycles(uint32_t cycles) {
     // Ex-Hazard
     ex_fwd_A = 0;
     ex_fwd_B = 0;
-    cout << cyclesElapsed << '\n';
-    cout << "ex mem regwrite:" << ex_mem.regWrite << '\n';
-    cout << "ex mem rd:" << ex_mem.RD << '\n';
-    cout << "id ex rs:" << id_ex.RS << '\n';
-    cout << "id ex rt:" << id_ex.RT << '\n';
-    cout << '\n';
+    // cout << cyclesElapsed << '\n';
+    // cout << "ex mem regwrite:" << ex_mem.regWrite << '\n';
+    // cout << "ex mem rd:" << ex_mem.RD << '\n';
+    // cout << "id ex rs:" << id_ex.RS << '\n';
+    // cout << "id ex rt:" << id_ex.RT << '\n';
+    // cout << '\n';
 
     if ((ex_mem.regWrite && (ex_mem.RD != 0)) && (ex_mem.RD == id_ex.RS)) {
       ex_fwd_A = 2;
