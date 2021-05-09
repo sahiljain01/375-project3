@@ -109,6 +109,7 @@ bool receivedIR = false;
 bool feedfeed_hit = false;
 bool load_use_stall = false;
 bool load_use_stall_delay = false;
+uint32_t load_use_stalls = 0;
 
 IFID if_id;
 IDEX id_ex;
@@ -423,6 +424,300 @@ void advance_pc(uint32_t offset)
 {
     //PC  =  nPC;
   PC  += offset;
+}
+
+
+void handleException(bool isArithmetic) {
+  
+  cout << '\n' << "Hit an exception! here's the PC: " << hex << PC << "and here's the exception type: " << isArithmetic << '\n';
+  PC_cpy = 0x8000;
+  // in the EX stage
+  if_id_cpy.nPC = 0;
+  if_id_cpy.IR = 0;
+
+  hit_exception = true;
+
+  id_ex.opcode = 0;
+  id_ex.func_code = 0;
+  id_ex.nPC = 0;
+  id_ex.RS = 0;
+  id_ex.RT = 0;
+  id_ex.RD = 0;
+  id_ex.immed = 0;
+  id_ex.A = 0;
+  id_ex.B = 0;
+  id_ex.seimmed = 0;
+  //id_ex.IR = 0;
+
+  if (isArithmetic) {
+    /* Start Updating the Copies */
+    ex_mem.BrTgt = 0;
+    ex_mem.Zero = 0;
+    ex_mem.ALUOut = 0;
+    ex_mem.RD = 0;
+    ex_mem.B = 0;
+    ex_mem.regWrite = 0;
+    ex_mem.memWrite = 0;
+    ex_mem.memRead = 0;
+    ex_mem.IR = 0;
+    // id_ex_cpy.opcode = 0;
+    // id_ex_cpy.func_code = 0;
+    // id_ex_cpy.nPC = 0;
+    // id_ex_cpy.RS = 0;
+    // id_ex_cpy.RT = 0;
+    // id_ex_cpy.RD = 0;
+    // id_ex_cpy.immed = 0;
+    // id_ex_cpy.A = 0;
+    // id_ex_cpy.B = 0;
+    // id_ex_cpy.seimmed = 0;
+    // id_ex_cpy.IR = 0;
+  }
+  PC = 0x8000;
+  PC_cpy = 0x8000;
+  nPC = PC_cpy + WORD_SIZE;
+}
+
+// determines if an instruction is a regWrite instruction
+bool isRegWrite(uint32_t opcode, uint32_t func_code) {
+  switch (opcode) {
+    case 0x0:
+      if (func_code == 0x8) {
+        return false;
+      }
+      break;
+    case 0x2:
+      return false;
+      break;
+    case 0x4:
+      return false;
+      break;
+    case 0x5:
+      return false;
+      break;
+    case 0x6:
+      return false;
+      break;
+    case 0x7:
+      return false;
+      break;
+    case 0x28:
+      return false;
+      break;
+    case 0x29:
+      return false;
+      break;
+    case 0x2b:
+      return false;
+      break;
+    default:
+      return true;
+      break;
+  }
+  return true;
+}
+
+// determines if an instruction is a memRead instruction
+bool isMemRead(uint32_t opcode){
+  switch (opcode){
+    case 0x23:
+      return true;
+      break;
+    case 0x24:
+      return true;
+      break;
+    case 0x25:
+      return true;
+      break;
+    default:
+      return false;
+      break;
+  }
+  return false;
+}
+
+// determines if an instruction is a memRead instruction
+bool isMemWrite(uint32_t opcode){
+  switch (opcode){
+    case 0x28:
+      return true;
+      break;
+    case 0x29:
+      return true;
+      break;
+    case 0x2b:
+      return true;
+      break;
+    default:
+      return false;
+      break;
+  }
+  return false;
+}
+
+bool isValidInstruction(uint32_t opcode, uint32_t func_code) {
+  cout << '\n' << hex << opcode << ' ' << hex << func_code << '\n';
+  switch (opcode){
+    // r-type instructions
+    case 0:
+    {
+      switch (func_code)
+      {
+          // add 
+          case 0x20:
+            return true;
+            break;
+          // addu
+          case 0x21:
+            return true;
+            break;
+          // and
+          case 0x24:
+            return true;
+            break;
+          // jr
+          case 0x08:
+            return true;
+            break;
+          // nor
+          case 0x27:
+            return true;
+            break;
+          // or
+          case 0x25:
+            return true;
+            break;
+          // slt (signed)
+          case 0x2a:
+            return true;
+            break;
+          // sltu
+          case 0x2b:
+            return true;
+            break;
+          // sll
+          case 0x00:
+            return true;
+            break;
+          // srl
+          case 0x02:
+            return true;
+            break;
+          // sub (signed)
+          case 0x22:
+            return true;
+            break;
+          // subu
+          case 0x23:
+            return true;
+            break;
+      }
+    break;
+    }
+  // jump address
+    case 2: 
+    {
+        return true;
+        break;
+    }
+    // jump and link
+    case 3:
+    {
+        return true;
+        break;
+    }
+    // rest are I-Types
+    case 0x8:
+    {
+        return true;
+        break;
+    }
+    case 0x9:
+    {
+        return true;
+        break;
+    }
+    case 0xc:
+    {
+        return true;
+        break;
+    }
+    case 0x4:
+    {
+        return true;
+        break;
+    }
+    case 0x5:
+    {
+        return true;
+        break;
+    }
+    case 0x24:
+    {
+        return true;
+        break;
+    }
+    case 0x25:
+    {
+        return true;
+        break;
+    }
+    case 0xf:
+    {
+        return true;
+        // load upper immediate
+        break;
+    }
+    case 0x23:
+    {
+        return true;
+        break;
+    }
+    case 0xd:
+    {
+        return true;
+        break;
+    }
+    case 0xa:
+    {
+        return true;
+        break;
+    }
+    case 0xb:
+    {
+        return true;
+      break;
+    }
+    case 0x28:
+    {
+        return true;
+      // store byte
+      break;
+    }
+    case 0x29:
+    {
+        return true;
+      // store halfword 
+      break;
+    }
+    case 0x2b:
+    {
+      return true;
+      // store word
+      break;
+    }
+    case 0x6:
+    {
+        return true;
+      break;
+    }
+    case 0x7:
+    {
+        return true;
+      break;            
+    }
+  }
+    return false;
+
 }
 
 
@@ -1171,298 +1466,5 @@ int runCycles(uint32_t cycles) {
     cyclesElapsed = cyclesElapsed + 1;
 
   }
-
-}
-
-void handleException(bool isArithmetic) {
-  
-  cout << '\n' << "Hit an exception! here's the PC: " << hex << PC << "and here's the exception type: " << isArithmetic << '\n';
-  PC_cpy = 0x8000;
-  // in the EX stage
-  if_id_cpy.nPC = 0;
-  if_id_cpy.IR = 0;
-
-  hit_exception = true;
-
-  id_ex.opcode = 0;
-  id_ex.func_code = 0;
-  id_ex.nPC = 0;
-  id_ex.RS = 0;
-  id_ex.RT = 0;
-  id_ex.RD = 0;
-  id_ex.immed = 0;
-  id_ex.A = 0;
-  id_ex.B = 0;
-  id_ex.seimmed = 0;
-  //id_ex.IR = 0;
-
-  if (isArithmetic) {
-    /* Start Updating the Copies */
-    ex_mem.BrTgt = 0;
-    ex_mem.Zero = 0;
-    ex_mem.ALUOut = 0;
-    ex_mem.RD = 0;
-    ex_mem.B = 0;
-    ex_mem.regWrite = 0;
-    ex_mem.memWrite = 0;
-    ex_mem.memRead = 0;
-    ex_mem.IR = 0;
-    // id_ex_cpy.opcode = 0;
-    // id_ex_cpy.func_code = 0;
-    // id_ex_cpy.nPC = 0;
-    // id_ex_cpy.RS = 0;
-    // id_ex_cpy.RT = 0;
-    // id_ex_cpy.RD = 0;
-    // id_ex_cpy.immed = 0;
-    // id_ex_cpy.A = 0;
-    // id_ex_cpy.B = 0;
-    // id_ex_cpy.seimmed = 0;
-    // id_ex_cpy.IR = 0;
-  }
-  PC = 0x8000;
-  PC_cpy = 0x8000;
-  nPC = PC_cpy + WORD_SIZE;
-}
-
-// determines if an instruction is a regWrite instruction
-bool isRegWrite(uint32_t opcode, uint32_t func_code) {
-  switch (opcode) {
-    case 0x0:
-      if (func_code == 0x8) {
-        return false;
-      }
-      break;
-    case 0x2:
-      return false;
-      break;
-    case 0x4:
-      return false;
-      break;
-    case 0x5:
-      return false;
-      break;
-    case 0x6:
-      return false;
-      break;
-    case 0x7:
-      return false;
-      break;
-    case 0x28:
-      return false;
-      break;
-    case 0x29:
-      return false;
-      break;
-    case 0x2b:
-      return false;
-      break;
-    default:
-      return true;
-      break;
-  }
-  return true;
-}
-
-// determines if an instruction is a memRead instruction
-bool isMemRead(uint32_t opcode){
-  switch (opcode){
-    case 0x23:
-      return true;
-      break;
-    case 0x24:
-      return true;
-      break;
-    case 0x25:
-      return true;
-      break;
-    default:
-      return false;
-      break;
-  }
-  return false;
-}
-
-// determines if an instruction is a memRead instruction
-bool isMemWrite(uint32_t opcode){
-  switch (opcode){
-    case 0x28:
-      return true;
-      break;
-    case 0x29:
-      return true;
-      break;
-    case 0x2b:
-      return true;
-      break;
-    default:
-      return false;
-      break;
-  }
-  return false;
-}
-
-bool isValidInstruction(uint32_t opcode, uint32_t func_code) {
-  cout << '\n' << hex << opcode << ' ' << hex << func_code << '\n';
-  switch (opcode){
-    // r-type instructions
-    case 0:
-    {
-      switch (func_code)
-      {
-          // add 
-          case 0x20:
-            return true;
-            break;
-          // addu
-          case 0x21:
-            return true;
-            break;
-          // and
-          case 0x24:
-            return true;
-            break;
-          // jr
-          case 0x08:
-            return true;
-            break;
-          // nor
-          case 0x27:
-            return true;
-            break;
-          // or
-          case 0x25:
-            return true;
-            break;
-          // slt (signed)
-          case 0x2a:
-            return true;
-            break;
-          // sltu
-          case 0x2b:
-            return true;
-            break;
-          // sll
-          case 0x00:
-            return true;
-            break;
-          // srl
-          case 0x02:
-            return true;
-            break;
-          // sub (signed)
-          case 0x22:
-            return true;
-            break;
-          // subu
-          case 0x23:
-            return true;
-            break;
-      }
-    break;
-    }
-  // jump address
-    case 2: 
-    {
-        return true;
-        break;
-    }
-    // jump and link
-    case 3:
-    {
-        return true;
-        break;
-    }
-    // rest are I-Types
-    case 0x8:
-    {
-        return true;
-        break;
-    }
-    case 0x9:
-    {
-        return true;
-        break;
-    }
-    case 0xc:
-    {
-        return true;
-        break;
-    }
-    case 0x4:
-    {
-        return true;
-        break;
-    }
-    case 0x5:
-    {
-        return true;
-        break;
-    }
-    case 0x24:
-    {
-        return true;
-        break;
-    }
-    case 0x25:
-    {
-        return true;
-        break;
-    }
-    case 0xf:
-    {
-        return true;
-        // load upper immediate
-        break;
-    }
-    case 0x23:
-    {
-        return true;
-        break;
-    }
-    case 0xd:
-    {
-        return true;
-        break;
-    }
-    case 0xa:
-    {
-        return true;
-        break;
-    }
-    case 0xb:
-    {
-        return true;
-      break;
-    }
-    case 0x28:
-    {
-        return true;
-      // store byte
-      break;
-    }
-    case 0x29:
-    {
-        return true;
-      // store halfword 
-      break;
-    }
-    case 0x2b:
-    {
-      return true;
-      // store word
-      break;
-    }
-    case 0x6:
-    {
-        return true;
-      break;
-    }
-    case 0x7:
-    {
-        return true;
-      break;            
-    }
-  }
-    return false;
 
 }
