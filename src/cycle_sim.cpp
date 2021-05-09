@@ -966,7 +966,7 @@ void exSection() {
                 if (sigbit_rd != sigbit_rs) {
                     /* TODO: Handle Exceptions! */
                     handleException(true);
-                    break;
+                    return;
                 }
             }
             ex_mem.ALUOut = res;
@@ -1026,14 +1026,14 @@ void exSection() {
                 if (sigbit_rd == 1) {
                     /* TODO: Handle Exceptions! */
                     handleException(true);
-                    break;
+                    return;
                 }
             }
             else if ((sigbit_rs == 1) && (sigbit_rt == 0)) {
                 if (sigbit_rd == 0) {
                     /* TODO: Handle Exceptions! */
                     handleException(true);
-                    break;
+                    return;
                 }
             }
             advance_pc(4);
@@ -1064,7 +1064,7 @@ void exSection() {
           if (sigbit_rd != sigbit_rs) {
               /* TODO: Handle Exception! */
               handleException(true);
-              break;
+              return;
           }
       }
       ex_mem.ALUOut = res;
