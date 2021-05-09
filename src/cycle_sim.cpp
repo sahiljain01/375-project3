@@ -123,6 +123,7 @@ uint32_t ex_fwd_A = 0;
 uint32_t ex_fwd_B = 0;
 uint32_t wb_instruction = 0;
 uint32_t if_instruction = 0;
+uint32_t load_use_stalls = 0;
 
 /* End of Global Variable Definitions */
 
@@ -672,21 +673,24 @@ bool isValidInstruction(uint32_t opcode, uint32_t func_code) {
 void ifSection() {
     /* IF section  */
     uint32_t instruction = 0;
-    // if (load_use_stall_delay) {
-    //   load_use_stall_delay = false;
-    //   return;
-    // }
-    // if (load_use_stall) {
-    //   load_use_stall_delay = true;
-    //   load_use_stall = false;
-    //   if_instruction = myMem->getMemValue(PC_cpy, instruction, WORD_SIZE);
-    //   return;
-    // }
+    if (load_use_stall_delay) {
+      load_use_stall--;
+      if (load_use_stall == 0 0) {
+        load_use_stall_delay = false;
+      }
+      return;
+    }
+    if (load_use_stall) {
+      load_use_stall_delay = true;
+      load_use_stall = false;
+      if_instruction = myMem->getMemValue(PC_cpy, instruction, WORD_SIZE);
+      return;
+    }
 
-    // bool hit = cacheAccess(true, PC, &instruction, true);
-    // if (!hit) {
-    //   // TODO: Add stalling logic here.
-    // }
+    bool hit = cacheAccess(true, PC, &instruction, true);
+    if (!hit) {
+      // TODO: Add stalling logic here.
+    }
     myMem->getMemValue(PC_cpy, instruction, WORD_SIZE);
     cout << hex << instruction << '\n' << "PC:" << hex << PC << '\n';
     if_id.IR = 0;
@@ -756,24 +760,25 @@ void idSection() {
       }
     }
 
-    // if (memRead && ((id_ex_cpy.RT == id_ex.RS) || (id_ex_cpy.RT == id_ex.RT))) {
-    //   cout << "inside this if statement";
-    //   instruction = 0;
-    //   id_ex.opcode = instruction >> 26;
-    //   id_ex.RS = instruction << 6 >> 27;
-    //   id_ex.RT = instruction << 11 >> 27;
-    //   id_ex.RD = instruction << 16 >> 27;
-    //   id_ex.func_code = instruction & (63); 
-    //   id_ex.immed = instruction << 16 >> 16;
-    //   id_ex.A = reg[id_ex.RS];
-    //   id_ex.B = reg[id_ex.RT];
-    //   id_ex.shamt = instruction << 21 >> 27;
-    //   id_ex.seimmed = (id_ex.immed >> 15 == 0) ? (uint32_t)id_ex.immed : ((uint32_t)id_ex.immed | 0xffff0000);
-    //   id_ex.IR = instruction;
-    //   load_use_stall = true;
-    //   id_ex.regWrite = isRegWrite(id_ex.opcode, id_ex.func_code);
-    //   return;
-    // }
+    if (memRead && ((id_ex_cpy.RT == id_ex.RS) || (id_ex_cpy.RT == id_ex.RT))) {
+      cout << "inside this if statement";
+      instruction = 0;
+      id_ex.opcode = instruction >> 26;
+      id_ex.RS = instruction << 6 >> 27;
+      id_ex.RT = instruction << 11 >> 27;
+      id_ex.RD = instruction << 16 >> 27;
+      id_ex.func_code = instruction & (63); 
+      id_ex.immed = instruction << 16 >> 16;
+      id_ex.A = reg[id_ex.RS];
+      id_ex.B = reg[id_ex.RT];
+      id_ex.shamt = instruction << 21 >> 27;
+      id_ex.seimmed = (id_ex.immed >> 15 == 0) ? (uint32_t)id_ex.immed : ((uint32_t)id_ex.immed | 0xffff0000);
+      id_ex.IR = instruction;
+      load_use_stall = true;
+      load_use_stalls = 1;
+      id_ex.regWrite = isRegWrite(id_ex.opcode, id_ex.func_code);
+      return;
+    }
 
     bool isBranch = false;
 
@@ -795,22 +800,26 @@ void idSection() {
         instruction = 0;
         id_ex = IDEX();
         load_use_stall = true;
+        load_use_stalls = 1;
       }
       else if ((ex_mem_cpy.regWrite && (ex_mem_cpy.RD != 0)) && (ex_mem_cpy.RD == id_ex.RT)) {
         instruction = 0;
         id_ex = IDEX();
         load_use_stall = true;
+        load_use_stalls = 1;
       }
       // case when we have a load, and then a branch
       if ((id_ex_cpy.regWrite && (id_ex_cpy.RD != 0)) && (id_ex_cpy.RD == id_ex.RS)) {
         instruction = 0;
         id_ex = IDEX();
         load_use_stall = true;
+        load_use_stalls = 2;
       }
       else if ((id_ex_cpy.regWrite && (id_ex_cpy.RD != 0)) && (id_ex_cpy.RD == id_ex.RT)) {
         instruction = 0;
         id_ex = IDEX();
         load_use_stall = true;
+        load_use_stalls = 2;
       }
 
       // case where we have an add, smt in the middle, and then a branch
@@ -830,12 +839,14 @@ void idSection() {
         instruction = 0;
         id_ex = IDEX();
         load_use_stall = true;
+        load_use_stalls = 1;
       }
       if ((id_ex_cpy.regWrite && (id_ex_cpy.RD != 0)) && (id_ex.RD == id_ex.RT)) {
         // stall by 1 cycle
         instruction = 0;
         id_ex = IDEX();
         load_use_stall = true;
+        load_use_stalls = 1;
       }
     
 
