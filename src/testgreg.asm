@@ -4,7 +4,7 @@
     nop
     nop
     bne $t1, $zero, afterbranch
-    nop
+    addi $t3, $zero, 0x44
 next:
     .word 0xfeedfeed
     .word 0x00000016
