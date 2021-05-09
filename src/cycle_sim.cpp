@@ -724,7 +724,6 @@ void ifSection() {
     uint32_t instruction = 0;
     if (load_use_stall_delay) {
       cout << "delaying now \n";
-      PC = PC-4;
       load_use_stalls = load_use_stalls - 1;
       if (load_use_stalls == 0) {
         load_use_stall_delay = false;
@@ -832,7 +831,6 @@ void idSection() {
       load_use_stall = true;
       load_use_stalls = 1;
       id_ex.regWrite = isRegWrite(id_ex.opcode, id_ex.func_code);
-      advance_pc(4);
       return;
     }
 
