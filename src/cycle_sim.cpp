@@ -916,7 +916,8 @@ void idSection() {
         break;
       // jump
       case (0x2):
-        PC = (PC & 0xf0000000) | (instruction << 6) >> 4;
+        uint32_t target = (instruction << 6) >> 6;
+        PC = (PC & 0xf0000000) | (target << 2);
         break;
       // jump and link
       case (0x3):
