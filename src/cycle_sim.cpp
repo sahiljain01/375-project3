@@ -907,14 +907,8 @@ void idSection() {
         break;
       // bne
       case (0x5):
-        cout << "a: " << id_ex.A << '\n';
-        cout << "b: " << id_ex.B << '\n';
         if (id_ex.A != id_ex.B) {
-            cout << "old pc: " << PC << '\n';
             advance_pc(id_ex.seimmed << 2);
-            cout << "offset: " << (id_ex.seimmed << 2) << '\n';
-            cout << "we branched" << '\n';
-            cout << "new pc: " << PC << '\n';
         }
         else {
           advance_pc(4);
@@ -922,8 +916,7 @@ void idSection() {
         break;
       // jump
       case (0x2):
-        PC = nPC; 
-        nPC = (PC & 0xf0000000) | (instruction << 6) >> 4;
+        PC = (PC & 0xf0000000) | (instruction << 6) >> 4;
         break;
       // jump and link
       case (0x3):
@@ -934,7 +927,6 @@ void idSection() {
         break;
       // blez
       case (0x6):
-        cout << "ID EX A FOR BLEZ: " << (int)id_ex.A << '\n';
         if ((int)id_ex.A <= 0) {
             advance_pc(id_ex.seimmed << 2);
         }
