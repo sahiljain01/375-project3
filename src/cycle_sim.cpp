@@ -729,6 +729,7 @@ void ifSection() {
       if (load_use_stalls == 0) {
         load_use_stall_delay = false;
         if_id.IR = if_instruction;
+        PC_cpy = PC;
       }
       return;
     }
@@ -790,6 +791,7 @@ void idSection() {
     id_ex.shamt = instruction << 21 >> 27;
     id_ex.seimmed = (id_ex.immed >> 15 == 0) ? (uint32_t)id_ex.immed : ((uint32_t)id_ex.immed | 0xffff0000);
     id_ex.IR = instruction;
+    id_ex.insertedNOP = false;
     bool memRead = false;
 
     if ((!isValidInstruction(id_ex.opcode, id_ex.func_code)) && (instruction != 0xfeedfeed)) {
@@ -830,6 +832,7 @@ void idSection() {
       id_ex.IR = instruction;
       load_use_stall = true;
       load_use_stalls = 1;
+      id_ex.insertedNOP = true;
       id_ex.regWrite = isRegWrite(id_ex.opcode, id_ex.func_code);
       return;
     }
@@ -1074,7 +1077,7 @@ void exSection() {
           // sll
           case 0x00:
             ex_mem.ALUOut = (B << shamt);
-            if (!load_use_stall) {
+            if (!id_ex_cpy.insertedNOP) {
               advance_pc(4);
             }
             break;
@@ -1442,6 +1445,7 @@ int runCycles(uint32_t cycles) {
     id_ex_cpy.shamt = id_ex.shamt;
     id_ex_cpy.memRead = id_ex.memRead;
     id_ex_cpy.regWrite = id_ex.regWrite;
+    id_ex_cpy.insertedNOP = id_ex.insertedNOP;
 
     ex_mem_cpy.IR = ex_mem.IR;
     ex_mem_cpy.BrTgt = ex_mem.BrTgt;
