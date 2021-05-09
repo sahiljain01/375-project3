@@ -1,5 +1,5 @@
 # Overflow test case for invalid instr
-    set noreorder
+    .set noreorder
     lw $t0, next+4
     nop
     nop
