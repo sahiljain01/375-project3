@@ -831,6 +831,7 @@ void idSection() {
       load_use_stall = true;
       load_use_stalls = 1;
       id_ex.regWrite = isRegWrite(id_ex.opcode, id_ex.func_code);
+      advance_pc(4);
       return;
     }
 
