@@ -445,7 +445,7 @@ void handleException(bool isArithmetic) {
   id_ex.A = 0;
   id_ex.B = 0;
   id_ex.seimmed = 0;
-  id_ex.IR = 0;
+  //id_ex.IR = 0;
 
   if (isArithmetic) {
     /* Start Updating the Copies */
@@ -756,24 +756,24 @@ void idSection() {
       }
     }
 
-    // if (memRead && ((id_ex_cpy.RT == id_ex.RS) || (id_ex_cpy.RT == id_ex.RT))) {
-    //   cout << "inside this if statement";
-    //   instruction = 0;
-    //   id_ex.opcode = instruction >> 26;
-    //   id_ex.RS = instruction << 6 >> 27;
-    //   id_ex.RT = instruction << 11 >> 27;
-    //   id_ex.RD = instruction << 16 >> 27;
-    //   id_ex.func_code = instruction & (63); 
-    //   id_ex.immed = instruction << 16 >> 16;
-    //   id_ex.A = reg[id_ex.RS];
-    //   id_ex.B = reg[id_ex.RT];
-    //   id_ex.shamt = instruction << 21 >> 27;
-    //   id_ex.seimmed = (id_ex.immed >> 15 == 0) ? (uint32_t)id_ex.immed : ((uint32_t)id_ex.immed | 0xffff0000);
-    //   id_ex.IR = instruction;
-    //   load_use_stall = true;
-    //   id_ex.regWrite = isRegWrite(id_ex.opcode, id_ex.func_code);
-    //   return;
-    // }
+    if (memRead && ((id_ex_cpy.RT == id_ex.RS) || (id_ex_cpy.RT == id_ex.RT))) {
+      cout << "inside this if statement";
+      instruction = 0;
+      id_ex.opcode = instruction >> 26;
+      id_ex.RS = instruction << 6 >> 27;
+      id_ex.RT = instruction << 11 >> 27;
+      id_ex.RD = instruction << 16 >> 27;
+      id_ex.func_code = instruction & (63); 
+      id_ex.immed = instruction << 16 >> 16;
+      id_ex.A = reg[id_ex.RS];
+      id_ex.B = reg[id_ex.RT];
+      id_ex.shamt = instruction << 21 >> 27;
+      id_ex.seimmed = (id_ex.immed >> 15 == 0) ? (uint32_t)id_ex.immed : ((uint32_t)id_ex.immed | 0xffff0000);
+      id_ex.IR = instruction;
+      load_use_stall = true;
+      id_ex.regWrite = isRegWrite(id_ex.opcode, id_ex.func_code);
+      return;
+    }
 
     bool isBranch = false;
 
