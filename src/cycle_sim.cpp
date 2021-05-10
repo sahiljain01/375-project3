@@ -1,3 +1,9 @@
+/*
+ *  COS 375 Project 3
+ *  cycle_sim.cpp
+ *  GID: 175
+ */
+
 #include <iostream>
 #include <iomanip>
 #include "MemoryStore.h"
@@ -7,31 +13,37 @@
 #include <math.h>
 #include <vector>
 #include <algorithm>
-#include "cache_test.h"
 
 using namespace std;
 
-/* Global Variable Definitions */
+/* GLOBAL VARIABLE DEFINITIONS */
 
+// Helpful enums for cache accesses
+enum {
+   ICACHE = true,
+   DCACHE = false,
+   READ = true,
+   WRITE = false
+};
+
+// Represents one cache entry
 struct CacheEntry {
   bool isValid;
   uint32_t tag;
-  // uint32_t* data;
   vector<uint32_t> data;
   void resize(size_t size) {
     data.resize(size);
   }
-
   bool isMRU;
 };
 
+// Represent cache
 struct Cache {
   // CacheEntry* entries;
   vector<CacheEntry> entries;
   void resize(size_t size) {
     entries.resize(size);
   }
-
   uint32_t tag_bits;
   uint32_t index_bits;
   uint32_t block_bits;
@@ -40,9 +52,11 @@ struct Cache {
   bool isDirect;
 };
 
+// Caches
 static Cache dCache;
 static Cache iCache;
 
+// Neccessary for correct cache writeback in the middle of a stall
 static Cache mostRecentICache;
 static Cache mostRecentDCache;
 
@@ -56,16 +70,15 @@ static uint32_t nPC = WORD_SIZE;
 static uint32_t cyclesElapsed = 0;
 static uint32_t PC_cpy = 0x00000000;
 
+// Cache stats
 uint32_t icHits = 0;
 uint32_t icMisses = 0;
 uint32_t dcHits = 0;
 uint32_t dcMisses = 0;
 uint32_t totalCycles = 0;
 bool hit_exception = false;
-bool exception_is_arithmetic = false;
 
-/* End of Global Variable Definitions */
-
+// Pipeline registers
 struct IFID {
   uint32_t nPC;
   uint32_t IR;
@@ -109,36 +122,38 @@ struct MEMWB {
   uint32_t regWrite;
 };
 
-bool receivedIR = false;
-bool feedfeed_hit = false;
-bool load_use_stall = false;
-bool load_use_stall_delay = false;
-uint32_t load_use_stalls = 0;
+// Useful global variable definitions
+static bool receivedIR = false;
+static bool feedfeed_hit = false;
+static bool load_use_stall = false;
+static bool load_use_stall_delay = false;
+static uint32_t load_use_stalls = 0;
 
-IFID if_id;
-IDEX id_ex;
-EXMEM ex_mem;
-MEMWB mem_wb;
-IFID if_id_cpy;
-IDEX id_ex_cpy;
-EXMEM ex_mem_cpy;
-MEMWB mem_wb_cpy;
+static IFID if_id;
+static IDEX id_ex;
+static EXMEM ex_mem;
+static MEMWB mem_wb;
+static IFID if_id_cpy;
+static IDEX id_ex_cpy;
+static EXMEM ex_mem_cpy;
+static MEMWB mem_wb_cpy;
 
-uint32_t ex_fwd_A = 0;
-uint32_t ex_fwd_B = 0;
-uint32_t wb_instruction = 0;
-uint32_t if_instruction = 0;
-int iCache_stalls = 0;
-int dCache_stalls = 0;
-bool started = false;
-bool haltReached = false;
-PipeState mostRecentPS = PipeState();
+// Various helpers for forwarding/stalling/etc.
+static uint32_t ex_fwd_A = 0;
+static uint32_t ex_fwd_B = 0;
+static uint32_t wb_instruction = 0;
+static uint32_t if_instruction = 0;
+static int iCache_stalls = 0;
+static int dCache_stalls = 0;
+static bool started = false;
+static bool haltReached = false;
+static PipeState mostRecentPS = PipeState();
 
+/* END GLOBAL VARIABLE DEFINITIONS */
 
-/* End of Global Variable Definitions */
+/* START OF CACHE SECTION */
 
-/* Start of the Cache Files */
-
+// FROM API: Initializes caches, but don't begin exectution
 int initSimulator(CacheConfig & icConfig, CacheConfig & dcConfig, MemoryStore *mainMem)
 {
   myMem = mainMem;
@@ -149,6 +164,7 @@ int initSimulator(CacheConfig & icConfig, CacheConfig & dcConfig, MemoryStore *m
   int iBlockSize = icConfig.blockSize;
   int dBlockSize = dcConfig.blockSize;
 
+  // get initialization settings for iCache
   uint32_t index_size = icConfig.cacheSize / (icConfig.blockSize * iWays);
   uint32_t index_bits = log2(index_size);
   uint32_t block_words = iBlockSize / WORD_SIZE;
@@ -168,6 +184,7 @@ int initSimulator(CacheConfig & icConfig, CacheConfig & dcConfig, MemoryStore *m
     iCache.entries[i].resize(block_words);
   }
 
+  // get initialization settings for dCache
   index_size = dcConfig.cacheSize / (dBlockSize * dWays);
   index_bits = log2(index_size);
   block_words = dBlockSize / WORD_SIZE;
@@ -186,11 +203,7 @@ int initSimulator(CacheConfig & icConfig, CacheConfig & dcConfig, MemoryStore *m
     dCache.entries[i].resize(block_words);
   }
 
-  // TODO: initialize iCache and dCache sizes, initialize individual cache entry data sizes
-  // TODO: test w driver
-
   return 0;
-
 }
 
 // Dump registers and memory
@@ -214,6 +227,7 @@ static void dump(MemoryStore* mem, uint32_t* myreg) {
    dumpMemoryState(mem);
 }
 
+// FROM API: finalize execution
 int finalizeSimulator() {
    // Print simulation stats to sim_stats.out file
    SimulationStats final_stats;
@@ -229,7 +243,7 @@ int finalizeSimulator() {
    final_stats.dcMisses = dcMisses;
    printSimStats(final_stats);
 
-   // Write back all dirty values in the data cache to memory
+   // Write back all dirty values in the iCache to memory
    uint32_t block_size = 1 << mostRecentICache.block_bits;
    for (int i = 0; i < mostRecentICache.entries.size(); i++) {
       if (iCache.entries[i].isValid) {
@@ -245,6 +259,7 @@ int finalizeSimulator() {
       }
    }
 
+   // Write back all dirty values in the dCache to memory
    block_size = 1 << mostRecentDCache.block_bits;
    for (int i = 0; i < mostRecentDCache.entries.size(); i++) {
       if (mostRecentDCache.entries[i].isValid) {
@@ -260,11 +275,11 @@ int finalizeSimulator() {
       }
    }
 
+   // Dump memory
    dump(myMem, reg);
 }
 
-// TODO: static function for block eviction
-
+// Evicts the block at the index from the cache, writing it back (write-through)
 static void evict_block(bool isICache, uint32_t index) {
 
   Cache* cache = isICache ? &iCache : &dCache;
@@ -282,8 +297,7 @@ static void evict_block(bool isICache, uint32_t index) {
   }
 }
 
-// TODO: static function for reading block from memory into cache
-
+// Reads in a block of memory into the cache
 static void read_from_mem(bool isICache, uint32_t index, uint32_t size) {
 
   Cache* cache = isICache ? &iCache : &dCache;
@@ -300,16 +314,8 @@ static void read_from_mem(bool isICache, uint32_t index, uint32_t size) {
   }
 }
 
-// prints statistics
-void printStats() {
-  cout << "iCache Hits: " << icHits << endl;
-  cout << "iCache Misses: " << icMisses << endl;
-  cout << "dCache Hits: " << dcHits << endl;
-  cout << "dCache Misses: " << dcMisses << endl;
-}
-
-// handles cache reads and writes
-bool cacheAccess(bool isICache, uint32_t memAddress, uint32_t *data, bool isRead, uint32_t size)
+// Handles all cache accesses
+static bool cacheAccess(bool isICache, uint32_t memAddress, uint32_t *data, bool isRead, uint32_t size)
 {
   Cache* cache = isICache ? &iCache : &dCache;
 
@@ -325,12 +331,12 @@ bool cacheAccess(bool isICache, uint32_t memAddress, uint32_t *data, bool isRead
   bitmask = (1 << cache->block_bits) - 1;
   block_offset &= bitmask;
 
-  // Bodging to allow for half/byte reads/writes
+  // Bit bashing to allow for half/byte reads/writes
   uint32_t byte_offset = memAddress & 0x3;
   uint32_t byte_mask = (size == WORD_SIZE) ? 0xffffffff : (0x1 << (8*size)) - 1;
   uint32_t byte_shift = 32 - 8 * (byte_offset + size);
 
-
+  // Direct-mapped case
   if (cache->isDirect) {
     // handles read hit
     if (cache->entries[index].isValid && cache->entries[index].tag == tag) {
@@ -338,6 +344,7 @@ bool cacheAccess(bool isICache, uint32_t memAddress, uint32_t *data, bool isRead
       else dcHits++;
 
       if (isRead) {
+         // Read data into the value pointer
          *data = ((cache->entries[index].data[block_offset] >> byte_shift) & byte_mask);
       } else {
          // Clear the data, then write over it
@@ -346,9 +353,10 @@ bool cacheAccess(bool isICache, uint32_t memAddress, uint32_t *data, bool isRead
       }
       return true;
     } else {
-      // if valid, evict existing block and write to memory
       if (isICache) icMisses++;
       else dcMisses++;
+      
+      // if valid, evict existing block and write to memory
       if (cache->entries[index].isValid) {
         evict_block(isICache, index);
       }
@@ -367,6 +375,7 @@ bool cacheAccess(bool isICache, uint32_t memAddress, uint32_t *data, bool isRead
       }
       return false;
     }
+    // Two-way set associative case
   } else {
     // cache hit with first block in set
     if (cache->entries[index].isValid && cache->entries[index].tag == tag) {
@@ -431,28 +440,21 @@ bool cacheAccess(bool isICache, uint32_t memAddress, uint32_t *data, bool isRead
   }
 }
 
-/* End of Cache Files */
+/* END OF CACHE SECTION */
 
+/* START OF PIPELINE SECTION */
 
 // advance PC function
-void advance_pc(uint32_t offset)
+static void advance_pc(uint32_t offset)
 {
-    //PC  =  nPC;
   PC  += offset;
 }
 
-
-void handleException(bool isArithmetic) {
-
-  cout << '\n' << "Hit an exception! here's the PC: " << hex << PC << "and here's the exception type: " << isArithmetic << '\n';
-  PC = 0x8000;
-  // in the EX stage
-  //if_id_cpy.nPC = 0;
-  //if_id_cpy.IR = 0;
-
+// Handles exceptions when they arise
+static void handleException(bool isArithmetic) {
   hit_exception = true;
-  exception_is_arithmetic = isArithmetic;
 
+  // Squash the instruction going into EX stage
   id_ex.opcode = 0;
   id_ex.func_code = 0;
   id_ex.nPC = 0;
@@ -463,10 +465,9 @@ void handleException(bool isArithmetic) {
   id_ex.A = 0;
   id_ex.B = 0;
   id_ex.seimmed = 0;
-  //id_ex.IR = 0;
 
   if (isArithmetic) {
-    /* Start Updating the Copies */
+     // Squash instruction going into MEM stage if arithmetic exception
     ex_mem.BrTgt = 0;
     ex_mem.Zero = 0;
     ex_mem.ALUOut = 0;
@@ -476,24 +477,13 @@ void handleException(bool isArithmetic) {
     ex_mem.memWrite = 0;
     ex_mem.memRead = 0;
     ex_mem.IR = 0;
-    //id_ex_cpy.opcode = 0;
-    //id_ex_cpy.func_code = 0;
-    //id_ex_cpy.nPC = 0;
-    //id_ex_cpy.RS = 0;
-    //id_ex_cpy.RT = 0;
-    //id_ex_cpy.RD = 0;
-    //id_ex_cpy.immed = 0;
-    //id_ex_cpy.A = 0;
-    //id_ex_cpy.B = 0;
-    //id_ex_cpy.seimmed = 0;
-    //id_ex_cpy.IR = 0;
   }
   PC = 0x8000;
   nPC = PC + WORD_SIZE;
 }
 
-// determines if an instruction is a regWrite instruction
-bool isRegWrite(uint32_t opcode, uint32_t func_code) {
+// Determines if an instruction is writing to a register
+static bool isRegWrite(uint32_t opcode, uint32_t func_code) {
   switch (opcode) {
     case 0x0:
       if (func_code == 0x8) {
@@ -531,8 +521,8 @@ bool isRegWrite(uint32_t opcode, uint32_t func_code) {
   return true;
 }
 
-// determines if an instruction is a memRead instruction
-bool isMemRead(uint32_t opcode){
+// Determines if an instruction is reading from memory
+static bool isMemRead(uint32_t opcode){
   switch (opcode){
     case 0x23:
       return true;
@@ -550,8 +540,8 @@ bool isMemRead(uint32_t opcode){
   return false;
 }
 
-// determines if an instruction is a memRead instruction
-bool isMemWrite(uint32_t opcode){
+// Deterimines if an instruction is writing to memory
+static bool isMemWrite(uint32_t opcode){
   switch (opcode){
     case 0x28:
       return true;
@@ -569,8 +559,8 @@ bool isMemWrite(uint32_t opcode){
   return false;
 }
 
-bool isValidInstruction(uint32_t opcode, uint32_t func_code) {
-  cout << '\n' << hex << opcode << ' ' << hex << func_code << '\n';
+// Determines if an instruction is valid or illegal
+static bool isValidInstruction(uint32_t opcode, uint32_t func_code) {
   switch (opcode){
     // r-type instructions
     case 0:
@@ -735,13 +725,12 @@ bool isValidInstruction(uint32_t opcode, uint32_t func_code) {
 
 }
 
-
-// IF section code
-void ifSection() {
-    /* IF section  */
+// HANDLE THE IF SECTION
+static void ifSection() {
     uint32_t instruction = 0;
+
+    // Now we are no longer fetching instructions until the load-use stall is over
     if (load_use_stall_delay) {
-      cout << "delaying now \n";
       load_use_stalls = load_use_stalls - 1;
       if (load_use_stalls == 0) {
         load_use_stall_delay = false;
@@ -750,33 +739,28 @@ void ifSection() {
       }
       return;
     }
+
+    // We just hit a load use stall later in the pipeline, so we still need to fetch an insruction
     if (load_use_stall) {
-      cout << "hit a load use stall in IF at cycle " << cyclesElapsed << " with this many stalls: " << load_use_stalls << endl;
       load_use_stall_delay = true;
       load_use_stall = false;
 
       bool hit = cacheAccess(ICACHE, PC_cpy, &instruction, READ, WORD_SIZE);
-      cout << "CACHE ACCESS!";
       if (!hit) {
         iCache_stalls = (iCache_stalls <= iCache.missLatency) ? iCache.missLatency: iCache_stalls;
       }
       if_instruction = instruction;
-      cout << if_instruction << "\n";
       return;
     }
 
-
-
-
     if_id.IR = 0;
 
+    // If we haven't hit 0xfeedfeed, then fetch an insruction
     if (!feedfeed_hit) {
       bool hit = cacheAccess(ICACHE, PC_cpy, &instruction, READ, WORD_SIZE);
-      cout << "CACHE ACCESS!";
       if (!hit) {
         iCache_stalls = (iCache_stalls <= iCache.missLatency) ? iCache.missLatency: iCache_stalls;
       }
-      cout << hex << instruction << '\n' << "PC:" << hex << PC << '\n';
       if_instruction = instruction;
       PC_cpy = PC;
       if_id.nPC = PC + 4;
@@ -787,22 +771,21 @@ void ifSection() {
       wb_instruction = 0;
     }
 
-
     if (instruction == 0xfeedfeed) {
       if (!hit_exception){
         feedfeed_hit = true;
       }
     }
-    /* ID section  */
 }
 
-
-
-void idSection() {
-    // retrieve and decode the instruction
+// HANDLE THE ID SECTION
+static void idSection() {
+    // If we are stalling, do nothing
     if (load_use_stalls > 1) {
       return;
     }
+
+    // Decode the instruction from IF
     uint32_t instruction = if_id_cpy.IR;
     load_use_stall = false;
     id_ex.opcode = instruction >> 26;
@@ -819,18 +802,19 @@ void idSection() {
     id_ex.insertedNOP = false;
     bool memRead = isMemRead(id_ex.opcode);
 
+    // Handle illegal instruction exception
     if ((!isValidInstruction(id_ex.opcode, id_ex.func_code)) && (instruction != 0xfeedfeed)) {
       handleException(false);
     }
 
+    // Determines if instruction is a branch, used for branch handling/forwarding
     bool isBranch = false;
-    // ex hazard forwarding to ID stage bc of branches
     if (((id_ex.opcode >= 0x2) && (id_ex.opcode <= 0x7)) || ((id_ex.opcode == 0) && (id_ex.func_code == 0x8))) {
       isBranch = true;
     }
 
+    // Handles load-use stalls
     if ((!isBranch) && ex_mem.memRead && (ex_mem.RD != 0) &&((ex_mem.RD == id_ex.RS) || (ex_mem.RD == id_ex.RT))) {
-      cout << "hit a load use stall at cycle " << cyclesElapsed << endl;
       instruction = 0;
       id_ex = IDEX();
       id_ex.insertedNOP = true;
@@ -845,30 +829,24 @@ void idSection() {
       advance_pc(4);
     }
 
-    // cout << "isbranch: " << isBranch << '\n';
-
+    // ID forwarding for branches
     bool clear_flag = false;
-
     if (isBranch) {
 
       // MEM Forwarding to ID (| --- | branch | --- | --- | load |)
       if ((mem_wb_cpy.regWrite && (mem_wb_cpy.RD != 0)) && (mem_wb_cpy.RD == id_ex.RS)) {
         id_ex.A = mem_wb_cpy.ALUOut;
-        cout << "MEM Forwarding A to ID at cycle " << cyclesElapsed << endl;
       }
       if ((mem_wb_cpy.regWrite && (mem_wb_cpy.RD != 0)) && (mem_wb_cpy.RD == id_ex.RT)) {
         id_ex.B = mem_wb_cpy.ALUOut;
-        cout << "MEM Forwarding B to ID at cycle " << cyclesElapsed << endl;
       }
 
       // EX Forwarding to ID (| --- | branch | --- | ALU | --- |)
       if ((ex_mem_cpy.regWrite && (ex_mem_cpy.RD != 0)) && (ex_mem_cpy.RD == id_ex.RS)) {
         id_ex.A = ex_mem_cpy.ALUOut;
-        cout << "EX Forwarding A to ID at cycle " << cyclesElapsed << endl;
       }
       if ((ex_mem_cpy.regWrite && (ex_mem_cpy.RD != 0)) && (ex_mem_cpy.RD == id_ex.RT)) {
         id_ex.B = ex_mem_cpy.ALUOut;
-        cout << "EX Forwarding B to ID at cycle " << cyclesElapsed << endl;
       }
 
       // MEM Stall by 1 cycle (| --- | branch | --- | load | --- |)
@@ -877,16 +855,13 @@ void idSection() {
         clear_flag = true;
         load_use_stall = true;
         load_use_stalls = 1;
-        cout << "MEM Stall by 1 Cycle to ID at cycle " << cyclesElapsed << endl;
       }
       if ((ex_mem_cpy.memRead && (ex_mem_cpy.RD != 0)) && (ex_mem_cpy.RD == id_ex.RT)) {
         instruction = 0;
         clear_flag = true;
         load_use_stall = true;
         load_use_stalls = 1;
-        cout << "MEM Stall by 1 Cycle to ID at cycle " << cyclesElapsed << endl;
       }
-
 
       // EX Stall by 1 cycle (| --- | branch | ALU | --- | --- |)
       if (ex_mem.regWrite && ((ex_mem.RD != 0) && (ex_mem.RD == id_ex.RS))) {
@@ -902,23 +877,20 @@ void idSection() {
         load_use_stalls = 1;
       }
 
-            // MEM Stall by 2 cycles (| --- | branch | load | --- | --- |)
+      // MEM Stall by 2 cycles (| --- | branch | load | --- | --- |)
       if (ex_mem.memRead && ((ex_mem.RD != 0) && (ex_mem.RD == id_ex.RS))) {
         instruction = 0;
         clear_flag = true;
         load_use_stall = true;
         load_use_stalls = 2;
-        cout << "2 STALL CYCLES!!!!!!!!!!!!!!!" << endl;
       }
       if (ex_mem.memRead && ((ex_mem.RD != 0) && (ex_mem.RD == id_ex.RT))) {
         instruction = 0;
         clear_flag = true;
         load_use_stall = true;
         load_use_stalls = 2;
-        cout << "2 STALL CYCLES!!!!!!!!!!!!!!!" << endl;
       }
     }
-
     if (clear_flag) {
        id_ex = IDEX();
     }
@@ -926,7 +898,8 @@ void idSection() {
     uint32_t mostSig_ex = id_ex.immed >> 15; // most significant bit in immediate
     uint32_t imm_ex = 0;
     uint32_t target = (instruction << 6) >> 6;
-    /* Determine if it's a branch. Enter Code Here */
+
+    // Branch handling
     switch (id_ex.opcode) {
       // beq
       case (0x4):
@@ -946,11 +919,11 @@ void idSection() {
           advance_pc(4);
         }
         break;
-      // jump
+      // j
       case (0x2):
         PC = (PC & 0xf0000000) | (target << 2);
         break;
-      // jump and link
+      // jal
       case (0x3):
         id_ex.RD = 31;
         id_ex.A = PC + 4;
@@ -974,7 +947,7 @@ void idSection() {
           advance_pc(4);
         }
         break;
-      // jump register
+      // jr
       case (0x0):
         if (id_ex.func_code == 0x8) {
           PC = id_ex.A;
@@ -984,16 +957,17 @@ void idSection() {
         break;
     }
 
+    // Squash ID stage if illegal instruction exception occurs
     if (hit_exception) {
        id_ex = IDEX();
     }
     id_ex.nPC = if_id_cpy.nPC + 4;
 }
 
-void exSection() {
-    /* Start of EX Section */
+// HANDLE THE EX SECTION
+static void exSection() {
+    // Get the data from ID
     int opCode = id_ex_cpy.opcode;
-    // initialize variables, rs, rt, rd, imm, mostSig
     uint32_t rs = id_ex_cpy.RS; // operand
     uint32_t rt = id_ex_cpy.RT; // destination operand for imm instructions
     uint32_t rd = id_ex_cpy.RD; // destination operand
@@ -1004,10 +978,11 @@ void exSection() {
     uint32_t B = id_ex_cpy.B;
     uint32_t shamt = id_ex_cpy.shamt;
 
-    /* intialize some EXMEM register variables */
+    // Intialize some EXMEM register variables
     ex_mem.B = id_ex_cpy.B;
     ex_mem.IR = id_ex_cpy.IR;
 
+    // More instruction specific details/fixing
     bool regWrite = isRegWrite(opCode, func_code);
     if (id_ex_cpy.IR == 0xfeedfeed){
       regWrite = false;
@@ -1025,12 +1000,8 @@ void exSection() {
     else {
       ex_mem.RD = rt;
     }
-    // lw r0, 5
-    // add r0, r0, r0
 
-    // memory stage
-    // add ex stage
-
+    // Forwarding to EX
     if (ex_fwd_A == 1) {
       A = mem_wb_cpy.ALUOut;
     }
@@ -1042,12 +1013,10 @@ void exSection() {
     }
     if (ex_fwd_B == 2) {
      B = ex_mem_cpy.ALUOut;
-     cout << "ex_mem_cpy.ALUOut: " << ex_mem_cpy.ALUOut << endl;
     }
 
-    // switch based on op-code.
     switch (opCode) {
-      // r-type instructions
+      // R-type instructions
       case 0:
       {
         // nested switch statements based on function code
@@ -1057,101 +1026,83 @@ void exSection() {
           // add
           case 0x20:
           {
+            // Need to handle overflow exceptions
             uint32_t sigbit_rs = A >> 31;
             uint32_t sigbit_rt = B >> 31;
             uint32_t res = (uint32_t)((int)A + (int)B);
             uint32_t sigbit_rd = res >> 31;
             if (sigbit_rs == sigbit_rt) {
                 if (sigbit_rd != sigbit_rs) {
-                    /* TODO: Handle Exceptions! */
                     handleException(true);
                     return;
                 }
             }
             ex_mem.ALUOut = res;
-            //advance_pc(4);
             break;
            }
           // addu
           case 0x21:
             ex_mem.ALUOut = A + B;
-            //advance_pc(4);
             break;
           // and
           case 0x24:
             ex_mem.ALUOut = A & B;
-            //advance_pc(4);
             break;
           // nor
           case 0x27:
             ex_mem.ALUOut = ~(A | B);
-            //advance_pc(4);
             break;
           // or
           case 0x25:
             ex_mem.ALUOut = A | B;
-            //advance_pc(4);
             break;
           // slt (signed)
           case 0x2a:
             ex_mem.ALUOut = ((int)A < (int)B) ? 1 : 0;
-            //advance_pc(4);
             break;
           // sltu
           case 0x2b:
             ex_mem.ALUOut = (A < B) ? 1 : 0;
-            //advance_pc(4);
             break;
           // sll
           case 0x00:
             ex_mem.ALUOut = (B << shamt);
-            // if (!load_use_stall) {
-            //   advance_pc(4);
-            // }
             break;
           // srl
           case 0x02:
             ex_mem.ALUOut = (B >> shamt);
-            //advance_pc(4);
             break;
           // sub (signed)
           case 0x22:
           {
+            // Need to handle overflow exceptions
             uint32_t sigbit_rs = A >> 31;
             uint32_t sigbit_rt = B >> 31;
             uint32_t res = (uint32_t)((int)A - (int)B);
             uint32_t sigbit_rd = res >> 31;
             if ((sigbit_rs == 0) && (sigbit_rt == 1)) {
                 if (sigbit_rd == 1) {
-                    /* TODO: Handle Exceptions! */
                     handleException(true);
                     return;
                 }
             }
             else if ((sigbit_rs == 1) && (sigbit_rt == 0)) {
                 if (sigbit_rd == 0) {
-                    /* TODO: Handle Exceptions! */
                     handleException(true);
                     return;
                 }
             }
-            //advance_pc(4);
             ex_mem.ALUOut = res;
             break;
           }
           // subu
           case 0x23:
             ex_mem.ALUOut = A - B;
-            //advance_pc(4);
             break;
-          // jr
-          // case 0x8:
-          //   ex_mem.ALUOut = A;
-          //   break;
         }
     break;
     }
-    // rest are I-Types
+    // I-type instructions
     case 0x8:
     {
       // add-immediate
@@ -1159,19 +1110,18 @@ void exSection() {
       if (mostSig == 1) {
           imm = imm | 0xffff0000;
       }
+      // More exception handling
       uint32_t sigbit_rs = A >> 31;
       uint32_t sigbit_imm = imm >> 31;
       uint32_t res = (uint32_t)((int)A + (int)imm);
       uint32_t sigbit_rd = res >> 31;
       if (sigbit_rs == sigbit_imm) {
           if (sigbit_rd != sigbit_rs) {
-              /* TODO: Handle Exception! */
               handleException(true);
               return;
           }
       }
       ex_mem.ALUOut = res;
-      //advance_pc(4);
       break;
     }
     case 0x9:
@@ -1182,21 +1132,18 @@ void exSection() {
           imm = imm | 0xffff0000;
       }
       ex_mem.ALUOut = A + imm;
-      //advance_pc(4);
       break;
     }
     case 0xc:
     {
-      // and immediate unsigned
+      // and immediate
       ex_mem.ALUOut = A & imm;
-      //advance_pc(4);
       break;
     }
     case 0xd:
     {
       // or immediate
       ex_mem.ALUOut = A | imm;
-      //advance_pc(4);
       break;
     }
     case 0xa:
@@ -1206,46 +1153,41 @@ void exSection() {
           imm = imm | 0xffff0000;
       }
       ex_mem.ALUOut = ((int)A < (int)imm) ? 1 : 0;
-      //advance_pc(4);
       break;
     }
     case 0xb:
     {
       // set less than immediate unsigned
+      if (mostSig == 1) {
+         imm = imm | 0xffff0000;
+      }
       ex_mem.ALUOut = (A < imm) ? 1 : 0;
-      //advance_pc(4);
       break;
     }
     case 0x24:
     {
       // load byte unsigned
-      // sign extend the imm variable
       if (mostSig == 1) {
           imm = imm | 0xfffc0000;
       }
       uint32_t res = imm + A;
       ex_mem.ALUOut = res;
-      //advance_pc(4);
       break;
     }
     case 0x25:
     {
       // load half word unsigned
-      // sign extend the imm variable
       if (mostSig == 1) {
           imm = imm | 0xfffc0000;
       }
       uint32_t res = imm + A;
       ex_mem.ALUOut = res;
-      //advance_pc(4);
       break;
     }
     case 0xf:
     {
-      cout << '\n' << "was inside the load upper immediate stage " << hex << PC << "\n";
       // load upper immediate
       ex_mem.ALUOut = (imm << 16);
-      //advance_pc(4);
       break;
     }
     case 0x23:
@@ -1257,7 +1199,6 @@ void exSection() {
       }
       res = imm + A;
       ex_mem.ALUOut = res;
-      //advance_pc(4);
       break;
     }
     case 0x28:
@@ -1270,7 +1211,6 @@ void exSection() {
       location = A + imm;
       ex_mem.ALUOut = location;
       ex_mem.B = B & (0x000000ff);
-      //advance_pc(4);
       break;
     }
     case 0x29:
@@ -1283,7 +1223,6 @@ void exSection() {
       location = A + imm;
       ex_mem.B = B & (0x0000ffff);
       ex_mem.ALUOut = location;
-      //advance_pc(4);
       break;
     }
     case 0x2b:
@@ -1296,21 +1235,18 @@ void exSection() {
       location = A + imm;
       ex_mem.B = B;
       ex_mem.ALUOut = location;
-      //advance_pc(4);
       break;
     }
   }
+  // Update pipeline registers
   ex_mem.memRead = memRead;
   ex_mem.memWrite = memWrite;
   ex_mem.regWrite = regWrite;
-
-  /* End of EX Section */
-
 }
 
-void memSection() {
-  /* Begin Mem Section */
-
+// START OF MEM SECTION
+static void memSection() {
+  // Getting data about instruction
   mem_wb.RD = ex_mem_cpy.RD;
   mem_wb.ALUOut = ex_mem_cpy.ALUOut;
   mem_wb.regWrite = ex_mem_cpy.regWrite;
@@ -1323,11 +1259,11 @@ void memSection() {
   bool memWrite_mem = ex_mem_cpy.memWrite;
   bool regWrite = ex_mem_cpy.regWrite;
 
+  // Get the size to write to
   uint32_t size = WORD_SIZE;
   if (memRead_mem || memWrite_mem) {
     opcode = mem_wb.IR >> 26;
     func_code = mem_wb.IR  & (63);
-    cout << "opcode: " << hex << opcode << '\n';
     switch (opcode) {
       case 0x28:
 	{
@@ -1366,13 +1302,13 @@ void memSection() {
           break;
         }
       default:
-	cout << "something went wrong!!";
-	break;
+         break;
 
     }
 
   }
 
+  // Read from memory
   if (memRead_mem) {
     bool hit = cacheAccess(DCACHE, ex_mem_cpy.ALUOut, &storeData, READ, size);
     if (!hit) {
@@ -1380,40 +1316,42 @@ void memSection() {
     }
     mem_wb.ALUOut = storeData;
   }
+  // Write to memory
   if (memWrite_mem) {
     bool hit = cacheAccess(DCACHE, ex_mem_cpy.ALUOut, &ex_mem_cpy.B, WRITE, size);
     if (!hit) {
       dCache_stalls = (dCache_stalls <= dCache.missLatency) ? dCache.missLatency: dCache_stalls;
     }
   }
-
-  /* End of Mem Section */
 }
 
-bool wbSection() {
-  /* Start of WB Section */
-   // hardwire zero to ground
-   reg[0] = 0;
+// START OF WB SECTION (returns if halt has reached wb)
+static bool wbSection() {
+  // hardwire zero to ground
+  reg[0] = 0;
   wb_instruction = mem_wb_cpy.IR;
+
+  // If feedfeed is in wb, send halt through
   if (mem_wb_cpy.IR == 0xfeedfeed) {
     return true;
   }
 
+  // Writes to register file
   if (isRegWrite(wb_instruction >> 26, wb_instruction & (63))) {
     reg[mem_wb_cpy.RD] = mem_wb_cpy.ALUOut;
   }
 
+  // No 0xfeedfeed reached
   return false;
-
-  /* End of WB Section */
 }
 
-
+// Helper function that runs only one cycle
 static bool runOneCycle() {
+    // Corner case for calling runCycles(0);
     started = true;
+
+    // If we are in a cache stall, update
     if ((iCache_stalls > 0) || (dCache_stalls > 0)) {
-      cout << "iCache stalls: " << iCache_stalls << "\n";
-      cout << "dCache stalls: " << dCache_stalls << "\n";
       iCache_stalls--;
       dCache_stalls--;
       if (iCache_stalls < 0) {
@@ -1425,49 +1363,39 @@ static bool runOneCycle() {
 
       return false;
     }
+    // Once out of cache stall, update cache with new values
     if (iCache_stalls <= 0) {
        mostRecentICache = iCache;
     }
     if (dCache_stalls <= 0) {
        mostRecentDCache = dCache;
     }
-   // Forwarding Section
+
+    // Forwarding Section
     ex_fwd_A = 0;
     ex_fwd_B = 0;
-    cout << cyclesElapsed << '\n';
-    cout << "$t2 is " << reg[10] << endl;
-    cout << "ex mem regwrite:" << ex_mem.regWrite << '\n';
-    cout << "ex mem rd:" << ex_mem.RD << '\n';
-    cout << "id ex rs:" << id_ex.RS << '\n';
-    cout << "id ex rt:" << id_ex.RT << '\n';
-    cout << '\n';
-
     // EX Hazard (forward to EX)
     if (ex_mem.regWrite && ((ex_mem.RD != 0) && (ex_mem.RD == id_ex.RS))) {
       ex_fwd_A = 2;
-      cout << "a from exmem" << '\n';
     }
     if (ex_mem.regWrite && ((ex_mem.RD != 0) && (ex_mem.RD == id_ex.RT))) {
       ex_fwd_B = 2;
-      cout << "b from exmem" << '\n';
     }
-
     // MEM Hazard (forward to EX)
     if ((mem_wb.regWrite && (mem_wb.RD != 0)) && !(ex_mem.regWrite && ((ex_mem.RD != 0) && (ex_mem.RD == id_ex.RS))) && (mem_wb.RD == id_ex.RS)) {
       ex_fwd_A = 1;
-      cout << "a from wb" << '\n';
     }
     if ((mem_wb.regWrite && (mem_wb.RD != 0)) && !(ex_mem.regWrite && ((ex_mem.RD != 0) && (ex_mem.RD == id_ex.RT))) && (mem_wb.RD == id_ex.RT)) {
       ex_fwd_B = 1;
-      cout << "b from wb" << '\n';
     }
 
+    // If we've hit an exception, squash the ID stage
     if (hit_exception) {
        if_id_cpy.IR = 0;
        if_id_cpy.nPC = 0;
     }
 
-
+    // Run all sections backwards
     bool halt = wbSection();
     memSection();
     exSection();
@@ -1478,21 +1406,25 @@ static bool runOneCycle() {
 }
 
 
-// run cycles function
+// FROM API: run the specified number of cycles
 int runCycles(uint32_t cycles) {
-
   bool halt;
   uint32_t endCycle = cyclesElapsed + cycles;
+  // If we're not running any cycles, just dump the most recent pipe state
   if ((cycles == 0) || haltReached) {
      dumpPipeState(mostRecentPS);
      return (haltReached) ? 1 : 0;
   }
+
+  // Run the correct number of cycles
   while (cyclesElapsed < endCycle) {
-
+     // Run one cycle
      halt = runOneCycle();
-     if (halt || (cyclesElapsed ==  (endCycle - 1))) {
 
+     // If we need to dump pipe state, do so
+     if (halt || (cyclesElapsed ==  (endCycle - 1))) {
          mostRecentPS.cycle = cyclesElapsed;
+         // If iCache stalled, need to pass 0xdeefdeef (UNKNOWN) into pipe state
          if (iCache_stalls > 0) {
            mostRecentPS.ifInstr = 0xdeefdeef;
          }
@@ -1511,7 +1443,7 @@ int runCycles(uint32_t cycles) {
          }
      }
 
-    /* Start Updating the Copies */
+     // Update the copies if we aren't in a cache stall
      if ((iCache_stalls <= 0) && (dCache_stalls <= 0)) {
         if_id_cpy.nPC = if_id.nPC;
         if_id_cpy.IR = if_id.IR;
@@ -1551,18 +1483,24 @@ int runCycles(uint32_t cycles) {
 
     cyclesElapsed = cyclesElapsed + 1;
   }
+
+  // Return if we reached a halt while running the specified number of cycles
   return (halt) ? 1 : 0;
 
 }
 
+// FROM API: run until halt is reached
 int runTillHalt() {
    bool halt = false;
+   // run until we hit a halt
    while (true) {
       halt = runOneCycle();
+
+      // If halt reached, break out
       if (halt)
          break;
 
-      /* Start Updating the Copies */
+      // Update the copies if we aren't in a cache stall
       if ((iCache_stalls <= 0) && (dCache_stalls <= 0)) {
          if_id_cpy.nPC = if_id.nPC;
          if_id_cpy.IR = if_id.IR;
@@ -1602,6 +1540,8 @@ int runTillHalt() {
 
     cyclesElapsed = cyclesElapsed + 1;
    }
+
+   // Dump the pipe state after we've reached the halt (should be | nop | nop | nop | nop | HALT |)
    mostRecentPS.cycle = cyclesElapsed;
    mostRecentPS.ifInstr = if_instruction;
    mostRecentPS.idInstr = if_id_cpy.IR;
@@ -1612,5 +1552,4 @@ int runTillHalt() {
    dumpPipeState(mostRecentPS);
    haltReached = true;
    return 0;
-
 }
