@@ -124,6 +124,8 @@ uint32_t ex_fwd_A = 0;
 uint32_t ex_fwd_B = 0;
 uint32_t wb_instruction = 0;
 uint32_t if_instruction = 0;
+uint32_t iCache_stalls = 0;
+uint32_t dCache_stalls = 0;
 
 bool haltReached = false;
 PipeState mostRecentPS = PipeState();
@@ -343,7 +345,7 @@ bool cacheAccess(bool isICache, uint32_t memAddress, uint32_t *data, bool isRead
 
       // read from memAddress to cache
       cache->entries[index].tag = tag;
-      read_from_mem(true, index, size);
+      read_from_mem(isICache, index, size);
 
       // read from cache into data
       cache->entries[index].isValid = true;
@@ -398,7 +400,7 @@ bool cacheAccess(bool isICache, uint32_t memAddress, uint32_t *data, bool isRead
       }
       // read from memAddress to cache
       cache->entries[index + LRU].tag = tag;
-      read_from_mem(true, index + LRU, size);
+      read_from_mem(isICache, index + LRU, size);
 
       // read from cache into data
       cache->entries[index + LRU].isValid = true;
@@ -727,7 +729,7 @@ bool isValidInstruction(uint32_t opcode, uint32_t func_code) {
 // IF section code
 void ifSection() {
     /* IF section  */
-    uint32_t instruction = 0;    
+    uint32_t instruction = 0;
     if (load_use_stall_delay) {
       cout << "delaying now \n";
       load_use_stalls = load_use_stalls - 1;
@@ -739,16 +741,25 @@ void ifSection() {
       return;
     }
     if (load_use_stall) {
-       cout << "hit a load use stall in IF at cycle " << cyclesElapsed << " with this many stalls: " << load_use_stalls << endl;
+      cout << "hit a load use stall in IF at cycle " << cyclesElapsed << " with this many stalls: " << load_use_stalls << endl;
       load_use_stall_delay = true;
       load_use_stall = false;
-      myMem->getMemValue(PC_cpy, instruction, WORD_SIZE);
+
+      bool hit = cacheAccess(ICACHE, PC_cpy, &instruction, READ, WORD_SIZE);                                                                                                                                                                                            
+      if (!hit) {                                                                                                                                                                                                                                                               
+        iCache_stalls = (iCache_stalls <= iCache.missLatency) ? iCache.missLatency: iCache_stalls;                                                                                                                                                                                                   
+      }                                                                                                                                                                                                                                                                         
       if_instruction = instruction;
       cout << if_instruction << "\n";
       return;
     }
 
-    myMem->getMemValue(PC_cpy, instruction, WORD_SIZE);
+                                                                                                                                                                                                                                                                             
+    bool hit = cacheAccess(ICACHE, PC_cpy, &instruction, READ, WORD_SIZE);                                                                                                                                                                                                      
+    if (!hit) {                                                                                                                                                                                                                                                                 
+      iCache_stalls = (iCache_stalls <= iCache.missLatency) ? iCache.missLatency: iCache_stalls;                                                                                                                                                                                                     
+    }
+
     cout << hex << instruction << '\n' << "PC:" << hex << PC << '\n';
     if_id.IR = 0;
 
@@ -1297,7 +1308,7 @@ void memSection() {
   bool memWrite_mem = ex_mem_cpy.memWrite;
   bool regWrite = ex_mem_cpy.regWrite;
 
-  MemEntrySize size = WORD_SIZE;
+  uint32_t size = WORD_SIZE;
   if (memRead_mem || memWrite_mem) {
     opcode = mem_wb.IR >> 26;
     func_code = mem_wb.IR  & (63);
@@ -1348,21 +1359,17 @@ void memSection() {
   }
 
   if (memRead_mem) {
-    // bool hit = cacheAccess(false, ex_mem_cpy.ALUOut, &storeData, true);
-    // mem_wb.memData = storeData;
-    // if (!hit) {
-    //   /* TODO: Work on Cache Latency / Stall Here As Well */
-    // }
-    myMem->getMemValue(ex_mem_cpy.ALUOut, storeData, size);
+    bool hit = cacheAccess(DCACHE, ex_mem_cpy.ALUOut, &storeData, READ, size);
+    if (!hit) {
+      dCache_stalls = (dCache_stalls <= dCache.missLatency) ? dCache.missLatency: dCache_stalls;
+    }
     mem_wb.ALUOut = storeData;
   }
   if (memWrite_mem) {
-    // bool hit = cacheAccess(false, ex_mem_cpy.ALUOut, ex_mem_cpy.B, false);
-    // if (!hit) {
-    //   /* TODO: Work on Cache Latency / Stall Here As Well */
-    // }
-    myMem->setMemValue(ex_mem_cpy.ALUOut, ex_mem_cpy.B,  size);
-    cout << "storing " << ex_mem_cpy.B << " at address 0x" << hex << ex_mem_cpy.ALUOut << endl;
+    bool hit = cacheAccess(DCACHE, ex_mem_cpy.ALUOut, &ex_mem_cpy.B, WRITE, size);
+    if (!hit) {
+      dCache_stalls = (dCache_stalls <= dCache.missLatency) ? dCache.missLatency: dCache_stalls;
+    }
   }
 
   /* End of Mem Section */ 
@@ -1386,6 +1393,19 @@ bool wbSection() {
 
 
 static bool runOneCycle() {
+
+    if ((iCache_stalls > 0) || (dCache_stalls > 0)) {
+      iCache_stalls--;
+      dCache_stalls--;
+      if (iCache_stalls < 0) {
+        iCache_stalls = 0;
+      }
+      if (dCache_stalls < 0) {
+        dCache_stalls = 0;
+      }
+
+      return false;
+    } 
    // Forwarding Section
     ex_fwd_A = 0;
     ex_fwd_B = 0;
@@ -1430,6 +1450,7 @@ static bool runOneCycle() {
 
 // run cycles function
 int runCycles(uint32_t cycles) {
+
   bool halt;
   uint32_t endCycle = cyclesElapsed + cycles;
   if ((cycles == 0) || haltReached) {
@@ -1440,8 +1461,14 @@ int runCycles(uint32_t cycles) {
 
      halt = runOneCycle();
      if (halt || (cyclesElapsed ==  (endCycle - 1))) {
+        
          mostRecentPS.cycle = cyclesElapsed;
-         mostRecentPS.ifInstr = if_instruction;
+         if (iCache_stalls > 0) {
+           mostRecentPS.ifInstr = 0xdeefdeef;
+         }
+         else {
+           mostRecentPS.ifInstr = if_instruction;
+         }
          mostRecentPS.idInstr = if_id_cpy.IR;
          mostRecentPS.exInstr = id_ex_cpy.IR;
          mostRecentPS.memInstr = ex_mem_cpy.IR;
