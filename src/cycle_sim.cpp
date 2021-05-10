@@ -125,6 +125,9 @@ uint32_t ex_fwd_B = 0;
 uint32_t wb_instruction = 0;
 uint32_t if_instruction = 0;
 
+bool haltReached = false;
+PipeState mostRecentPS = PipeState();
+
 /* End of Global Variable Definitions */
 
 /* Start of the Cache Files */
@@ -1381,12 +1384,9 @@ bool wbSection() {
   /* End of WB Section */
 }
 
-// run cycles function
-int runCycles(uint32_t cycles) {
 
-  while (cyclesElapsed < cycles) {
-     
-    // Forwarding Section
+static bool runOneCycle() {
+   // Forwarding Section
     ex_fwd_A = 0;
     ex_fwd_B = 0;
     cout << cyclesElapsed << '\n';
@@ -1424,19 +1424,35 @@ int runCycles(uint32_t cycles) {
     idSection();
     ifSection();
 
-    PipeState ps;
-    ps.cycle = cyclesElapsed;
-    ps.ifInstr = if_instruction;
-    ps.idInstr = if_id_cpy.IR;
-    ps.exInstr = id_ex_cpy.IR;
-    ps.memInstr = ex_mem_cpy.IR;
-    ps.wbInstr = mem_wb_cpy.IR;
+    return halt;
+}
 
-    dumpPipeState(ps);
 
-    if (halt) {
-      break;
-    }
+// run cycles function
+int runCycles(uint32_t cycles) {
+  bool halt;
+  uint32_t endCycle = cyclesElapsed + cycles;
+  if ((cycles == 0) || haltReached) {
+     dumpPipeState(mostRecentPS);
+     return (haltReached) ? 1 : 0;
+  }
+  while (cyclesElapsed < endCycle) {
+
+     halt = runOneCycle();
+     if (halt || (cyclesElapsed ==  (endCycle - 1))) {
+         mostRecentPS.cycle = cyclesElapsed;
+         mostRecentPS.ifInstr = if_instruction;
+         mostRecentPS.idInstr = if_id_cpy.IR;
+         mostRecentPS.exInstr = id_ex_cpy.IR;
+         mostRecentPS.memInstr = ex_mem_cpy.IR;
+         mostRecentPS.wbInstr = mem_wb_cpy.IR;
+
+         dumpPipeState(mostRecentPS);
+         if (halt) {
+            haltReached = true;
+            break;
+         }
+     }
 
     /* Start Updating the Copies */
     if_id_cpy.nPC = if_id.nPC;
@@ -1475,7 +1491,65 @@ int runCycles(uint32_t cycles) {
     mem_wb_cpy.regWrite = mem_wb.regWrite;
 
     cyclesElapsed = cyclesElapsed + 1;
-
   }
+  return (halt) ? 1 : 0;
+ 
+}
 
+int runTillHalt() {
+   bool halt = false;
+   while (true) {
+      halt = runOneCycle();
+      if (halt)
+         break;
+
+      /* Start Updating the Copies */
+    if_id_cpy.nPC = if_id.nPC;
+    if_id_cpy.IR = if_id.IR;
+
+    id_ex_cpy.IR = id_ex.IR;
+    id_ex_cpy.opcode = id_ex.opcode;
+    id_ex_cpy.func_code = id_ex.func_code;
+    id_ex_cpy.nPC = id_ex.nPC;
+    id_ex_cpy.RS = id_ex.RS;
+    id_ex_cpy.RT = id_ex.RT;
+    id_ex_cpy.RD = id_ex.RD;
+    id_ex_cpy.immed = id_ex.immed;
+    id_ex_cpy.A = id_ex.A;
+    id_ex_cpy.B = id_ex.B;
+    id_ex_cpy.seimmed = id_ex.seimmed;
+    id_ex_cpy.shamt = id_ex.shamt;
+    id_ex_cpy.memRead = id_ex.memRead;
+    id_ex_cpy.regWrite = id_ex.regWrite;
+    id_ex_cpy.insertedNOP = id_ex.insertedNOP;
+
+    ex_mem_cpy.IR = ex_mem.IR;
+    ex_mem_cpy.BrTgt = ex_mem.BrTgt;
+    ex_mem_cpy.Zero = ex_mem.Zero;
+    ex_mem_cpy.ALUOut = ex_mem.ALUOut;
+    ex_mem_cpy.RD = ex_mem.RD;
+    ex_mem_cpy.B = ex_mem.B;
+    ex_mem_cpy.regWrite = ex_mem.regWrite;
+    ex_mem_cpy.memWrite = ex_mem.memWrite;
+    ex_mem_cpy.memRead = ex_mem.memRead;
+
+    mem_wb_cpy.IR = mem_wb.IR;
+    mem_wb_cpy.RD = mem_wb.RD;
+    mem_wb_cpy.memData = mem_wb.memData;
+    mem_wb_cpy.ALUOut = mem_wb.ALUOut;
+    mem_wb_cpy.regWrite = mem_wb.regWrite;
+
+    cyclesElapsed = cyclesElapsed + 1;
+   }
+   mostRecentPS.cycle = cyclesElapsed;
+   mostRecentPS.ifInstr = if_instruction;
+   mostRecentPS.idInstr = if_id_cpy.IR;
+   mostRecentPS.exInstr = id_ex_cpy.IR;
+   mostRecentPS.memInstr = ex_mem_cpy.IR;
+   mostRecentPS.wbInstr = mem_wb_cpy.IR;
+
+   dumpPipeState(mostRecentPS);
+   haltReached = true;
+   return 0;
+ 
 }
