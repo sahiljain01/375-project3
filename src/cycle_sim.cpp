@@ -803,7 +803,7 @@ void idSection() {
       isBranch = true;
     }
 
-    if ((!isBranch) && ex_mem.memRead && ((ex_mem.RD == id_ex.RS) || (ex_mem.RD == id_ex.RT))) {
+    if ((!isBranch) && ex_mem.memRead && (ex_mem.RD != 0) &&((ex_mem.RD == id_ex.RS) || (ex_mem.RD == id_ex.RT))) {
       cout << "hit a load use stall at cycle " << cyclesElapsed << endl;
       instruction = 0;
       id_ex = IDEX();
@@ -863,13 +863,13 @@ void idSection() {
       
 
       // EX Stall by 1 cycle (| --- | branch | ALU | --- | --- |)
-      if (ex_mem.regWrite && (ex_mem.RD == id_ex.RS)) {
+      if (ex_mem.regWrite && ((ex_mem.RD != 0) && (ex_mem.RD == id_ex.RS))) {
         instruction = 0;
         clear_flag = true;
         load_use_stall = true;
         load_use_stalls = 1;
       }
-      if (ex_mem.regWrite && (ex_mem.RD == id_ex.RT)) {
+      if (ex_mem.regWrite && ((ex_mem.RD != 0) && (ex_mem.RD == id_ex.RT))) {
         instruction = 0;
         clear_flag = true;
         load_use_stall = true;
@@ -877,14 +877,14 @@ void idSection() {
       }
 
             // MEM Stall by 2 cycles (| --- | branch | load | --- | --- |)
-      if (ex_mem.memRead && (ex_mem.RD == id_ex.RS)) {
+      if (ex_mem.memRead && ((ex_mem.RD != 0) && (ex_mem.RD == id_ex.RS))) {
         instruction = 0;
         clear_flag = true;
         load_use_stall = true;
         load_use_stalls = 2;
         cout << "2 STALL CYCLES!!!!!!!!!!!!!!!" << endl;
       }
-      if (ex_mem.memRead && (ex_mem.RD == id_ex.RT)) {
+      if (ex_mem.memRead && ((ex_mem.RD != 0) && (ex_mem.RD == id_ex.RT))) {
         instruction = 0;
         clear_flag = true;
         load_use_stall = true;
@@ -932,7 +932,7 @@ void idSection() {
         break;
       // blez
       case (0x6):
-        if ((int)id_ex.A <= 0) {
+         if (static_cast<int32_t>(id_ex.A) <= 0) {
             advance_pc(id_ex.seimmed << 2);
         }
         else {
@@ -941,7 +941,7 @@ void idSection() {
         break;
       // bgtz
       case (0x7):
-        if ((int)id_ex.A > 0) {
+         if (static_cast<int32_t>(id_ex.A) > 0) {
             advance_pc(id_ex.seimmed << 2);
         }
         else {
@@ -1013,6 +1013,7 @@ void exSection() {
     }
     if (ex_fwd_B == 2) {
      B = ex_mem_cpy.ALUOut;
+     cout << "ex_mem_cpy.ALUOut: " << ex_mem_cpy.ALUOut << endl;
     }
 
     // switch based on op-code.
@@ -1239,7 +1240,7 @@ void exSection() {
       uint32_t location = 0;
       location = A + imm; 
       ex_mem.ALUOut = location;
-      ex_mem.B = ex_mem.B & (0x000000ff);
+      ex_mem.B = B & (0x000000ff);
       //advance_pc(4);
       break;
     }
@@ -1251,7 +1252,7 @@ void exSection() {
       }
       uint32_t location = 0;
       location = A + imm; 
-      ex_mem.B = ex_mem.B & (0x0000ffff);
+      ex_mem.B = B & (0x0000ffff);
       ex_mem.ALUOut = location;
       //advance_pc(4);
       break;
@@ -1264,6 +1265,7 @@ void exSection() {
       }
       uint32_t location = 0;
       location = A + imm;
+      ex_mem.B = B;
       ex_mem.ALUOut = location;
       //advance_pc(4);
       break;
@@ -1290,7 +1292,7 @@ void memSection() {
   uint32_t func_code = 0;
   bool memRead_mem = ex_mem_cpy.memRead;
   bool memWrite_mem = ex_mem_cpy.memWrite;
-  bool regWrite = ex_mem_cpy.regWrite;  
+  bool regWrite = ex_mem_cpy.regWrite;
 
   MemEntrySize size = WORD_SIZE;
   if (memRead_mem || memWrite_mem) {
@@ -1331,7 +1333,7 @@ void memSection() {
       case 0x23:
         {
           size = WORD_SIZE;
-          // load word                                                                                                                
+          // load word
           break;
         }
       default:
@@ -1357,6 +1359,7 @@ void memSection() {
     //   /* TODO: Work on Cache Latency / Stall Here As Well */
     // }
     myMem->setMemValue(ex_mem_cpy.ALUOut, ex_mem_cpy.B,  size);
+    cout << "storing " << ex_mem_cpy.B << " at address 0x" << hex << ex_mem_cpy.ALUOut << endl;
   }
 
   /* End of Mem Section */ 
@@ -1382,11 +1385,12 @@ bool wbSection() {
 int runCycles(uint32_t cycles) {
 
   while (cyclesElapsed < cycles) {
-
+     
     // Forwarding Section
     ex_fwd_A = 0;
     ex_fwd_B = 0;
     cout << cyclesElapsed << '\n';
+    cout << "$t2 is " << reg[10] << endl;
     cout << "ex mem regwrite:" << ex_mem.regWrite << '\n';
     cout << "ex mem rd:" << ex_mem.RD << '\n';
     cout << "id ex rs:" << id_ex.RS << '\n';
@@ -1394,21 +1398,21 @@ int runCycles(uint32_t cycles) {
     cout << '\n';
 
     // EX Hazard (forward to EX)
-    if ((ex_mem.regWrite && (ex_mem.RD != 0)) && (ex_mem.RD == id_ex.RS)) {
+    if (ex_mem.regWrite && ((ex_mem.RD != 0) && (ex_mem.RD == id_ex.RS))) {
       ex_fwd_A = 2;
       cout << "a from exmem" << '\n';
     }
-    if ((ex_mem.regWrite && (ex_mem.RD != 0)) && (ex_mem.RD == id_ex.RT)) {
+    if (ex_mem.regWrite && ((ex_mem.RD != 0) && (ex_mem.RD == id_ex.RT))) {
       ex_fwd_B = 2;
       cout << "b from exmem" << '\n';
     }
 
     // MEM Hazard (forward to EX)
-    if ((mem_wb.regWrite && (mem_wb.RD != 0)) && !(ex_mem.regWrite && (ex_mem.RD != 0) && (ex_mem.RD == id_ex.RS)) && (mem_wb.RD == id_ex.RS)) {
+    if ((mem_wb.regWrite && (mem_wb.RD != 0)) && !(ex_mem.regWrite && ((ex_mem.RD != 0) && (ex_mem.RD == id_ex.RS))) && (mem_wb.RD == id_ex.RS)) {
       ex_fwd_A = 1;
       cout << "a from wb" << '\n';
     }
-    if ((mem_wb.regWrite && (mem_wb.RD != 0)) && !(ex_mem.regWrite && (ex_mem.RD != 0) && (ex_mem.RD == id_ex.RT)) && (mem_wb.RD == id_ex.RT)) {
+    if ((mem_wb.regWrite && (mem_wb.RD != 0)) && !(ex_mem.regWrite && ((ex_mem.RD != 0) && (ex_mem.RD == id_ex.RT))) && (mem_wb.RD == id_ex.RT)) {
       ex_fwd_B = 1;
       cout << "b from wb" << '\n';
     }
