@@ -62,6 +62,7 @@ uint32_t dcHits = 0;
 uint32_t dcMisses = 0;
 uint32_t totalCycles = 0;
 bool hit_exception = false;
+bool exception_is_arithmetic = false;
 
 /* End of Global Variable Definitions */
 
@@ -132,6 +133,7 @@ int dCache_stalls = 0;
 bool started = false;
 bool haltReached = false;
 PipeState mostRecentPS = PipeState();
+
 
 /* End of Global Variable Definitions */
 
@@ -443,12 +445,13 @@ void advance_pc(uint32_t offset)
 void handleException(bool isArithmetic) {
 
   cout << '\n' << "Hit an exception! here's the PC: " << hex << PC << "and here's the exception type: " << isArithmetic << '\n';
-  PC_cpy = 0x8000;
+  PC = 0x8000;
   // in the EX stage
-  if_id_cpy.nPC = 0;
-  if_id_cpy.IR = 0;
+  //if_id_cpy.nPC = 0;
+  //if_id_cpy.IR = 0;
 
   hit_exception = true;
+  exception_is_arithmetic = isArithmetic;
 
   id_ex.opcode = 0;
   id_ex.func_code = 0;
@@ -473,21 +476,20 @@ void handleException(bool isArithmetic) {
     ex_mem.memWrite = 0;
     ex_mem.memRead = 0;
     ex_mem.IR = 0;
-    // id_ex_cpy.opcode = 0;
-    // id_ex_cpy.func_code = 0;
-    // id_ex_cpy.nPC = 0;
-    // id_ex_cpy.RS = 0;
-    // id_ex_cpy.RT = 0;
-    // id_ex_cpy.RD = 0;
-    // id_ex_cpy.immed = 0;
-    // id_ex_cpy.A = 0;
-    // id_ex_cpy.B = 0;
-    // id_ex_cpy.seimmed = 0;
-    // id_ex_cpy.IR = 0;
+    //id_ex_cpy.opcode = 0;
+    //id_ex_cpy.func_code = 0;
+    //id_ex_cpy.nPC = 0;
+    //id_ex_cpy.RS = 0;
+    //id_ex_cpy.RT = 0;
+    //id_ex_cpy.RD = 0;
+    //id_ex_cpy.immed = 0;
+    //id_ex_cpy.A = 0;
+    //id_ex_cpy.B = 0;
+    //id_ex_cpy.seimmed = 0;
+    //id_ex_cpy.IR = 0;
   }
   PC = 0x8000;
-  PC_cpy = 0x8000;
-  nPC = PC_cpy + WORD_SIZE;
+  nPC = PC + WORD_SIZE;
 }
 
 // determines if an instruction is a regWrite instruction
@@ -819,7 +821,6 @@ void idSection() {
 
     if ((!isValidInstruction(id_ex.opcode, id_ex.func_code)) && (instruction != 0xfeedfeed)) {
       handleException(false);
-      return;
     }
 
     bool isBranch = false;
@@ -952,7 +953,7 @@ void idSection() {
       // jump and link
       case (0x3):
         id_ex.RD = 31;
-        id_ex.A = PC + 8;
+        id_ex.A = PC + 4;
         PC = (PC & 0xf0000000) | (target << 2);
         break;
       // blez
@@ -983,6 +984,9 @@ void idSection() {
         break;
     }
 
+    if (hit_exception) {
+       id_ex = IDEX();
+    }
     id_ex.nPC = if_id_cpy.nPC + 4;
 }
 
@@ -1456,6 +1460,11 @@ static bool runOneCycle() {
     if ((mem_wb.regWrite && (mem_wb.RD != 0)) && !(ex_mem.regWrite && ((ex_mem.RD != 0) && (ex_mem.RD == id_ex.RT))) && (mem_wb.RD == id_ex.RT)) {
       ex_fwd_B = 1;
       cout << "b from wb" << '\n';
+    }
+
+    if (hit_exception) {
+       if_id_cpy.IR = 0;
+       if_id_cpy.nPC = 0;
     }
 
 
