@@ -952,7 +952,7 @@ void idSection() {
       // jump and link
       case (0x3):
         id_ex.RD = 31;
-        id_ex.A = PC + 8;
+        id_ex.A = PC + 4;
         PC = (PC & 0xf0000000) | (target << 2);
         break;
       // blez
