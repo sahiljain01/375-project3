@@ -736,7 +736,7 @@ void ifSection() {
       return;
     }
     if (load_use_stall) {
-      cout << "hit a load use stall \n";
+       cout << "hit a load use stall in IF at cycle " << cyclesElapsed << " with this many stalls: " << load_use_stalls << endl;
       load_use_stall_delay = true;
       load_use_stall = false;
       myMem->getMemValue(PC_cpy, instruction, WORD_SIZE);
@@ -797,20 +797,16 @@ void idSection() {
       return;
     }
 
-    if (ex_mem.memRead && ((ex_mem.RD == id_ex.RS) || (ex_mem.RD == id_ex.RT))) {
-      cout << "hit a load use stall. \n";
+    bool isBranch = false;
+    // ex hazard forwarding to ID stage bc of branches
+    if (((id_ex.opcode >= 0x2) && (id_ex.opcode <= 0x7)) || ((id_ex.opcode == 0) && (id_ex.func_code == 0x8))) {
+      isBranch = true;
+    }
+
+    if ((!isBranch) && ex_mem.memRead && ((ex_mem.RD == id_ex.RS) || (ex_mem.RD == id_ex.RT))) {
+      cout << "hit a load use stall at cycle " << cyclesElapsed << endl;
       instruction = 0;
-      id_ex.opcode = 0;
-      id_ex.RS = 0;
-      id_ex.RT = 0;
-      id_ex.RD = 0;
-      id_ex.func_code = 0;
-      id_ex.immed = 0;
-      id_ex.A = 0;
-      id_ex.B = 0;
-      id_ex.shamt = 0;
-      id_ex.seimmed = 0;
-      id_ex.IR = 0;
+      id_ex = IDEX();
       id_ex.insertedNOP = true;
       id_ex.regWrite = false;
 
@@ -819,80 +815,86 @@ void idSection() {
       return;
     }
 
-    bool isBranch = false;
-    // ex hazard forwarding to ID stage bc of branches
-    if (((id_ex.opcode >= 0x2) && (id_ex.opcode <= 0x7)) || ((id_ex.opcode == 0) && (id_ex.func_code == 0x8))) {
-      isBranch = true;
-    }
-
     if (!isBranch) {
       advance_pc(4);
     }
 
     // cout << "isbranch: " << isBranch << '\n';
 
+    bool clear_flag = false;
+    
     if (isBranch) {
 
-      // case when we have a load, 2 things in the middle, and then a branch
+      // MEM Forwarding to ID (| --- | branch | --- | --- | load |)
       if ((mem_wb_cpy.regWrite && (mem_wb_cpy.RD != 0)) && (mem_wb_cpy.RD == id_ex.RS)) {
-        id_ex.A = mem_wb_cpy.memData;
+        id_ex.A = mem_wb_cpy.ALUOut;
+        cout << "MEM Forwarding A to ID at cycle " << cyclesElapsed << endl;
       }
-      else if ((mem_wb_cpy.regWrite && (mem_wb_cpy.RD != 0)) && (mem_wb_cpy.RD == id_ex.RT)) {
-        id_ex.B = mem_wb_cpy.memData;
+      if ((mem_wb_cpy.regWrite && (mem_wb_cpy.RD != 0)) && (mem_wb_cpy.RD == id_ex.RT)) {
+        id_ex.B = mem_wb_cpy.ALUOut;
+        cout << "MEM Forwarding B to ID at cycle " << cyclesElapsed << endl;
       }
-      // case when we have a load, 1 thing in the middle, and then a branch (stall by 1 cycles)
+
+      // EX Forwarding to ID (| --- | branch | --- | ALU | --- |)
       if ((ex_mem_cpy.regWrite && (ex_mem_cpy.RD != 0)) && (ex_mem_cpy.RD == id_ex.RS)) {
-        instruction = 0;
-        id_ex = IDEX();
-        load_use_stall = true;
-        load_use_stalls = 1;
-      }
-      else if ((ex_mem_cpy.regWrite && (ex_mem_cpy.RD != 0)) && (ex_mem_cpy.RD == id_ex.RT)) {
-        instruction = 0;
-        id_ex = IDEX();
-        load_use_stall = true;
-        load_use_stalls = 1;
-      }
-      // case when we have a load, and then a branch
-      if ((id_ex_cpy.regWrite && (id_ex_cpy.RD != 0)) && (id_ex_cpy.RD == id_ex.RS)) {
-        instruction = 0;
-        id_ex = IDEX();
-        load_use_stall = true;
-        load_use_stalls = 2;
-      }
-      else if ((id_ex_cpy.regWrite && (id_ex_cpy.RD != 0)) && (id_ex_cpy.RD == id_ex.RT)) {
-        instruction = 0;
-        id_ex = IDEX();
-        load_use_stall = true;
-        load_use_stalls = 2;
-      }
-
-      // case where we have an add, smt in the middle, and then a branch
-      if ((ex_mem_cpy.regWrite && (ex_mem_cpy.RD != 0)) && (id_ex.RD == id_ex.RS)) {
-        // no stall
         id_ex.A = ex_mem_cpy.ALUOut;
+        cout << "EX Forwarding A to ID at cycle " << cyclesElapsed << endl;
       }
-      if ((ex_mem_cpy.regWrite && (ex_mem_cpy.RD != 0)) && (id_ex.RD == id_ex.RT)) {
-        // no stall
+      if ((ex_mem_cpy.regWrite && (ex_mem_cpy.RD != 0)) && (ex_mem_cpy.RD == id_ex.RT)) {
         id_ex.B = ex_mem_cpy.ALUOut;
+        cout << "EX Forwarding B to ID at cycle " << cyclesElapsed << endl;
+      }
+      
+      // MEM Stall by 1 cycle (| --- | branch | --- | load | --- |)
+      if ((ex_mem_cpy.memRead && (ex_mem_cpy.RD != 0)) && (ex_mem_cpy.RD == id_ex.RS)) {
+        instruction = 0;
+        clear_flag = true;
+        load_use_stall = true;
+        load_use_stalls = 1;
+        cout << "MEM Stall by 1 Cycle to ID at cycle " << cyclesElapsed << endl;
+      }
+      if ((ex_mem_cpy.memRead && (ex_mem_cpy.RD != 0)) && (ex_mem_cpy.RD == id_ex.RT)) {
+        instruction = 0;
+        clear_flag = true;
+        load_use_stall = true;
+        load_use_stalls = 1;
+        cout << "MEM Stall by 1 Cycle to ID at cycle " << cyclesElapsed << endl;
+      }
+      
+
+      // EX Stall by 1 cycle (| --- | branch | ALU | --- | --- |)
+      if (ex_mem.regWrite && (ex_mem.RD == id_ex.RS)) {
+        instruction = 0;
+        clear_flag = true;
+        load_use_stall = true;
+        load_use_stalls = 1;
+      }
+      if (ex_mem.regWrite && (ex_mem.RD == id_ex.RT)) {
+        instruction = 0;
+        clear_flag = true;
+        load_use_stall = true;
+        load_use_stalls = 1;
       }
 
-      // case where we have an add, and then a branch
-      // same id_ex.cpy but we don't store regWrite in id_ex.
-      if ((id_ex_cpy.regWrite && (id_ex_cpy.RD != 0)) && (id_ex.RD == id_ex.RS)) {
-        // stall by 1 cycle
+            // MEM Stall by 2 cycles (| --- | branch | load | --- | --- |)
+      if (ex_mem.memRead && (ex_mem.RD == id_ex.RS)) {
         instruction = 0;
-        id_ex = IDEX();
+        clear_flag = true;
         load_use_stall = true;
-        load_use_stalls = 1;
+        load_use_stalls = 2;
+        cout << "2 STALL CYCLES!!!!!!!!!!!!!!!" << endl;
       }
-      if ((id_ex_cpy.regWrite && (id_ex_cpy.RD != 0)) && (id_ex.RD == id_ex.RT)) {
-        // stall by 1 cycle
+      if (ex_mem.memRead && (ex_mem.RD == id_ex.RT)) {
         instruction = 0;
-        id_ex = IDEX();
+        clear_flag = true;
         load_use_stall = true;
-        load_use_stalls = 1;
+        load_use_stalls = 2;
+        cout << "2 STALL CYCLES!!!!!!!!!!!!!!!" << endl;
       }
+    }
+
+    if (clear_flag) {
+       id_ex = IDEX();
     }
 
     uint32_t mostSig_ex = id_ex.immed >> 15; // most significant bit in immediate
@@ -1382,7 +1384,6 @@ int runCycles(uint32_t cycles) {
   while (cyclesElapsed < cycles) {
 
     // Forwarding Section
-    // Ex-Hazard
     ex_fwd_A = 0;
     ex_fwd_B = 0;
     cout << cyclesElapsed << '\n';
@@ -1392,6 +1393,7 @@ int runCycles(uint32_t cycles) {
     cout << "id ex rt:" << id_ex.RT << '\n';
     cout << '\n';
 
+    // EX Hazard (forward to EX)
     if ((ex_mem.regWrite && (ex_mem.RD != 0)) && (ex_mem.RD == id_ex.RS)) {
       ex_fwd_A = 2;
       cout << "a from exmem" << '\n';
@@ -1401,6 +1403,7 @@ int runCycles(uint32_t cycles) {
       cout << "b from exmem" << '\n';
     }
 
+    // MEM Hazard (forward to EX)
     if ((mem_wb.regWrite && (mem_wb.RD != 0)) && !(ex_mem.regWrite && (ex_mem.RD != 0) && (ex_mem.RD == id_ex.RS)) && (mem_wb.RD == id_ex.RS)) {
       ex_fwd_A = 1;
       cout << "a from wb" << '\n';
@@ -1409,6 +1412,7 @@ int runCycles(uint32_t cycles) {
       ex_fwd_B = 1;
       cout << "b from wb" << '\n';
     }
+
     
     bool halt = wbSection();
     memSection();
