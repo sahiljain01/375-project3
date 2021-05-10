@@ -126,7 +126,7 @@ uint32_t wb_instruction = 0;
 uint32_t if_instruction = 0;
 int iCache_stalls = 0;
 int dCache_stalls = 0;
-
+bool started = false;
 bool haltReached = false;
 PipeState mostRecentPS = PipeState();
 
@@ -212,7 +212,12 @@ static void dump(MemoryStore* mem, uint32_t* myreg) {
 int finalizeSimulator() {
    // Print simulation stats to sim_stats.out file
    SimulationStats final_stats;
-   final_stats.totalCycles = cyclesElapsed;
+   if (!started) {
+     final_stats.totalCycles = 0;
+   }
+   else {
+     final_stats.totalCycles = cyclesElapsed+1;
+   }
    final_stats.icHits = icHits;
    final_stats.icMisses = icMisses;
    final_stats.dcHits = dcHits;
@@ -745,7 +750,8 @@ void ifSection() {
       load_use_stall_delay = true;
       load_use_stall = false;
 
-      bool hit = cacheAccess(ICACHE, PC_cpy, &instruction, READ, WORD_SIZE);                                                                                                                                                                                            
+      bool hit = cacheAccess(ICACHE, PC_cpy, &instruction, READ, WORD_SIZE);
+      cout << "CACHE ACCESS!";                                                                                                                                                                                            
       if (!hit) {                                                                                                                                                                                                                                                               
         iCache_stalls = (iCache_stalls <= iCache.missLatency) ? iCache.missLatency: iCache_stalls;                                                                                                                                                                                                   
       }                                                                                                                                                                                                                                                                         
@@ -755,7 +761,8 @@ void ifSection() {
     }
 
                                                                                                                                                                                                                                                                              
-    bool hit = cacheAccess(ICACHE, PC_cpy, &instruction, READ, WORD_SIZE);                                                                                                                                                                                                      
+    bool hit = cacheAccess(ICACHE, PC_cpy, &instruction, READ, WORD_SIZE);  
+    cout << "CACHE ACCESS!";                                                                                                                                                                                                    
     if (!hit) {                                                                                                                                                                                                                                                                 
       iCache_stalls = (iCache_stalls <= iCache.missLatency) ? iCache.missLatency: iCache_stalls;                                                                                                                                                                                                     
     }
@@ -1393,7 +1400,7 @@ bool wbSection() {
 
 
 static bool runOneCycle() {
-
+    started = true;
     if ((iCache_stalls > 0) || (dCache_stalls > 0)) {
       cout << "iCache stalls: " << iCache_stalls << "\n";
       cout << "dCache stalls: " << dCache_stalls << "\n";
