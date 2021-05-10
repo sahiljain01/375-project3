@@ -1395,6 +1395,8 @@ bool wbSection() {
 static bool runOneCycle() {
 
     if ((iCache_stalls > 0) || (dCache_stalls > 0)) {
+      cout << "iCache stalls: " << iCache_stalls << "\n";
+      cout << "dCache stalls: " << dCache_stalls << "\n";
       iCache_stalls--;
       dCache_stalls--;
       if (iCache_stalls < 0) {
