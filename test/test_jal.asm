@@ -4,6 +4,7 @@
     addi $t1, $zero, 0x28
     addi $t2, $zero, ra
     jal next
+    nop
     .word 0xfeedfeed
 ra:
     .word 0xfeedfeed

@@ -3,7 +3,7 @@
 .set noreorder
     lw $t1, next+4
     lw $t2, next+8
-    blez $t2, afterFirst:
+    blez $t2, afterFirst
     addi $t0, $zero, 0x44
 afterFirst:
     blez $t1, afterSecond
