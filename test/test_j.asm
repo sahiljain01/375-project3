@@ -3,6 +3,7 @@
     addi $t0, $zero, 0x24
     addi $t1, $zero, 0x28
     j next
+    nop
     .word 0xfeedfeed
     .word 0xfeedfeed
     .word 0xfeedfeed
