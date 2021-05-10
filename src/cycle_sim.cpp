@@ -124,8 +124,8 @@ uint32_t ex_fwd_A = 0;
 uint32_t ex_fwd_B = 0;
 uint32_t wb_instruction = 0;
 uint32_t if_instruction = 0;
-uint32_t iCache_stalls = 0;
-uint32_t dCache_stalls = 0;
+int iCache_stalls = 0;
+int dCache_stalls = 0;
 
 bool haltReached = false;
 PipeState mostRecentPS = PipeState();
