@@ -760,17 +760,18 @@ void ifSection() {
       return;
     }
 
-                                                                                                                                                                                                                                                                             
-    bool hit = cacheAccess(ICACHE, PC_cpy, &instruction, READ, WORD_SIZE);  
-    cout << "CACHE ACCESS!";                                                                                                                                                                                                    
-    if (!hit) {                                                                                                                                                                                                                                                                 
-      iCache_stalls = (iCache_stalls <= iCache.missLatency) ? iCache.missLatency: iCache_stalls;                                                                                                                                                                                                     
-    }
 
-    cout << hex << instruction << '\n' << "PC:" << hex << PC << '\n';
+                                                                                                                                                                                                                                                                             
+    
     if_id.IR = 0;
 
     if (!feedfeed_hit) {
+      bool hit = cacheAccess(ICACHE, PC_cpy, &instruction, READ, WORD_SIZE);  
+      cout << "CACHE ACCESS!";                                                                                                                                                                                                    
+      if (!hit) {                                                                                                                                                                                                                                                                 
+        iCache_stalls = (iCache_stalls <= iCache.missLatency) ? iCache.missLatency: iCache_stalls;                                                                                                                                                                                                     
+      }
+      cout << hex << instruction << '\n' << "PC:" << hex << PC << '\n';
       if_instruction = instruction;
       PC_cpy = PC;
       if_id.nPC = PC + 4;
