@@ -77,7 +77,7 @@ struct IDEX {
   uint32_t RD;
   uint32_t immed;
   uint32_t A;
-  uint32_t B; 
+  uint32_t B;
   uint32_t seimmed;
   uint32_t shamt;
   bool memRead;
@@ -350,7 +350,7 @@ bool cacheAccess(bool isICache, uint32_t memAddress, uint32_t *data, bool isRead
 
       // read from memAddress to cache
       cache->entries[index].tag = tag;
-      read_from_mem(isICache, index, size);
+      read_from_mem(isICache, index, WORD_SIZE);
 
       // read from cache into data
       cache->entries[index].isValid = true;
@@ -405,7 +405,7 @@ bool cacheAccess(bool isICache, uint32_t memAddress, uint32_t *data, bool isRead
       }
       // read from memAddress to cache
       cache->entries[index + LRU].tag = tag;
-      read_from_mem(isICache, index + LRU, size);
+      read_from_mem(isICache, index + LRU, WORD_SIZE);
 
       // read from cache into data
       cache->entries[index + LRU].isValid = true;
@@ -426,9 +426,9 @@ bool cacheAccess(bool isICache, uint32_t memAddress, uint32_t *data, bool isRead
   }
 }
 
-/* End of Cache Files */ 
+/* End of Cache Files */
 
- 
+
 // advance PC function
 void advance_pc(uint32_t offset)
 {
@@ -438,7 +438,7 @@ void advance_pc(uint32_t offset)
 
 
 void handleException(bool isArithmetic) {
-  
+
   cout << '\n' << "Hit an exception! here's the PC: " << hex << PC << "and here's the exception type: " << isArithmetic << '\n';
   PC_cpy = 0x8000;
   // in the EX stage
@@ -572,7 +572,7 @@ bool isValidInstruction(uint32_t opcode, uint32_t func_code) {
     {
       switch (func_code)
       {
-          // add 
+          // add
           case 0x20:
             return true;
             break;
@@ -624,7 +624,7 @@ bool isValidInstruction(uint32_t opcode, uint32_t func_code) {
     break;
     }
   // jump address
-    case 2: 
+    case 2:
     {
         return true;
         break;
@@ -706,7 +706,7 @@ bool isValidInstruction(uint32_t opcode, uint32_t func_code) {
     case 0x29:
     {
         return true;
-      // store halfword 
+      // store halfword
       break;
     }
     case 0x2b:
@@ -723,7 +723,7 @@ bool isValidInstruction(uint32_t opcode, uint32_t func_code) {
     case 0x7:
     {
         return true;
-      break;            
+      break;
     }
   }
     return false;
@@ -751,25 +751,25 @@ void ifSection() {
       load_use_stall = false;
 
       bool hit = cacheAccess(ICACHE, PC_cpy, &instruction, READ, WORD_SIZE);
-      cout << "CACHE ACCESS!";                                                                                                                                                                                            
-      if (!hit) {                                                                                                                                                                                                                                                               
-        iCache_stalls = (iCache_stalls <= iCache.missLatency) ? iCache.missLatency: iCache_stalls;                                                                                                                                                                                                   
-      }                                                                                                                                                                                                                                                                         
+      cout << "CACHE ACCESS!";
+      if (!hit) {
+        iCache_stalls = (iCache_stalls <= iCache.missLatency) ? iCache.missLatency: iCache_stalls;
+      }
       if_instruction = instruction;
       cout << if_instruction << "\n";
       return;
     }
 
 
-                                                                                                                                                                                                                                                                             
-    
+
+
     if_id.IR = 0;
 
     if (!feedfeed_hit) {
-      bool hit = cacheAccess(ICACHE, PC_cpy, &instruction, READ, WORD_SIZE);  
-      cout << "CACHE ACCESS!";                                                                                                                                                                                                    
-      if (!hit) {                                                                                                                                                                                                                                                                 
-        iCache_stalls = (iCache_stalls <= iCache.missLatency) ? iCache.missLatency: iCache_stalls;                                                                                                                                                                                                     
+      bool hit = cacheAccess(ICACHE, PC_cpy, &instruction, READ, WORD_SIZE);
+      cout << "CACHE ACCESS!";
+      if (!hit) {
+        iCache_stalls = (iCache_stalls <= iCache.missLatency) ? iCache.missLatency: iCache_stalls;
       }
       cout << hex << instruction << '\n' << "PC:" << hex << PC << '\n';
       if_instruction = instruction;
@@ -779,9 +779,9 @@ void ifSection() {
     }
     else {
       if_instruction = 0;
-      wb_instruction = 0;	
+      wb_instruction = 0;
     }
-    
+
 
     if (instruction == 0xfeedfeed) {
       if (!hit_exception){
@@ -804,7 +804,7 @@ void idSection() {
     id_ex.RS = instruction << 6 >> 27;
     id_ex.RT = instruction << 11 >> 27;
     id_ex.RD = instruction << 16 >> 27;
-    id_ex.func_code = instruction & (63); 
+    id_ex.func_code = instruction & (63);
     id_ex.immed = instruction << 16 >> 16;
     id_ex.A = reg[id_ex.RS];
     id_ex.B = reg[id_ex.RT];
@@ -844,7 +844,7 @@ void idSection() {
     // cout << "isbranch: " << isBranch << '\n';
 
     bool clear_flag = false;
-    
+
     if (isBranch) {
 
       // MEM Forwarding to ID (| --- | branch | --- | --- | load |)
@@ -866,7 +866,7 @@ void idSection() {
         id_ex.B = ex_mem_cpy.ALUOut;
         cout << "EX Forwarding B to ID at cycle " << cyclesElapsed << endl;
       }
-      
+
       // MEM Stall by 1 cycle (| --- | branch | --- | load | --- |)
       if ((ex_mem_cpy.memRead && (ex_mem_cpy.RD != 0)) && (ex_mem_cpy.RD == id_ex.RS)) {
         instruction = 0;
@@ -882,7 +882,7 @@ void idSection() {
         load_use_stalls = 1;
         cout << "MEM Stall by 1 Cycle to ID at cycle " << cyclesElapsed << endl;
       }
-      
+
 
       // EX Stall by 1 cycle (| --- | branch | ALU | --- | --- |)
       if (ex_mem.regWrite && ((ex_mem.RD != 0) && (ex_mem.RD == id_ex.RS))) {
@@ -984,12 +984,12 @@ void idSection() {
 }
 
 void exSection() {
-    /* Start of EX Section */ 
+    /* Start of EX Section */
     int opCode = id_ex_cpy.opcode;
     // initialize variables, rs, rt, rd, imm, mostSig
     uint32_t rs = id_ex_cpy.RS; // operand
     uint32_t rt = id_ex_cpy.RT; // destination operand for imm instructions
-    uint32_t rd = id_ex_cpy.RD; // destination operand 
+    uint32_t rd = id_ex_cpy.RD; // destination operand
     uint32_t imm = id_ex_cpy.immed; // immediate address
     uint32_t mostSig = imm >> 15; // most significant bit in immediate
     uint32_t func_code = id_ex_cpy.func_code;
@@ -1023,7 +1023,7 @@ void exSection() {
 
     // memory stage
     // add ex stage
-    
+
     if (ex_fwd_A == 1) {
       A = mem_wb_cpy.ALUOut;
     }
@@ -1043,11 +1043,11 @@ void exSection() {
       // r-type instructions
       case 0:
       {
-        // nested switch statements based on function code 
+        // nested switch statements based on function code
         // for r-type instructions.
         switch (func_code)
         {
-          // add 
+          // add
           case 0x20:
           {
             uint32_t sigbit_rs = A >> 31;
@@ -1260,7 +1260,7 @@ void exSection() {
           imm = imm | 0xffff0000;
       }
       uint32_t location = 0;
-      location = A + imm; 
+      location = A + imm;
       ex_mem.ALUOut = location;
       ex_mem.B = B & (0x000000ff);
       //advance_pc(4);
@@ -1268,12 +1268,12 @@ void exSection() {
     }
     case 0x29:
     {
-      // store halfword 
+      // store halfword
       if (mostSig == 1) {
           imm = imm | 0xffff0000;
       }
       uint32_t location = 0;
-      location = A + imm; 
+      location = A + imm;
       ex_mem.B = B & (0x0000ffff);
       ex_mem.ALUOut = location;
       //advance_pc(4);
@@ -1331,7 +1331,7 @@ void memSection() {
       case 0x29:
 	{
 	  size = HALF_SIZE;
-	  // store halfword 
+	  // store halfword
 	  break;
 	}
       case 0x2b:
@@ -1380,16 +1380,18 @@ void memSection() {
     }
   }
 
-  /* End of Mem Section */ 
+  /* End of Mem Section */
 }
 
 bool wbSection() {
   /* Start of WB Section */
+   // hardwire zero to ground
+   reg[0] = 0;
   wb_instruction = mem_wb_cpy.IR;
   if (mem_wb_cpy.IR == 0xfeedfeed) {
     return true;
   }
-  
+
   if (isRegWrite(wb_instruction >> 26, wb_instruction & (63))) {
     reg[mem_wb_cpy.RD] = mem_wb_cpy.ALUOut;
   }
@@ -1415,7 +1417,7 @@ static bool runOneCycle() {
       }
 
       return false;
-    } 
+    }
    // Forwarding Section
     ex_fwd_A = 0;
     ex_fwd_B = 0;
@@ -1447,7 +1449,7 @@ static bool runOneCycle() {
       cout << "b from wb" << '\n';
     }
 
-    
+
     bool halt = wbSection();
     memSection();
     exSection();
@@ -1471,7 +1473,7 @@ int runCycles(uint32_t cycles) {
 
      halt = runOneCycle();
      if (halt || (cyclesElapsed ==  (endCycle - 1))) {
-        
+
          mostRecentPS.cycle = cyclesElapsed;
          if (iCache_stalls > 0) {
            mostRecentPS.ifInstr = 0xdeefdeef;
@@ -1492,45 +1494,47 @@ int runCycles(uint32_t cycles) {
      }
 
     /* Start Updating the Copies */
-    if_id_cpy.nPC = if_id.nPC;
-    if_id_cpy.IR = if_id.IR;
+     if ((iCache_stalls <= 0) && (dCache_stalls <= 0)) {
+        if_id_cpy.nPC = if_id.nPC;
+        if_id_cpy.IR = if_id.IR;
 
-    id_ex_cpy.IR = id_ex.IR;
-    id_ex_cpy.opcode = id_ex.opcode;
-    id_ex_cpy.func_code = id_ex.func_code;
-    id_ex_cpy.nPC = id_ex.nPC;
-    id_ex_cpy.RS = id_ex.RS;
-    id_ex_cpy.RT = id_ex.RT;
-    id_ex_cpy.RD = id_ex.RD;
-    id_ex_cpy.immed = id_ex.immed;
-    id_ex_cpy.A = id_ex.A;
-    id_ex_cpy.B = id_ex.B;
-    id_ex_cpy.seimmed = id_ex.seimmed;
-    id_ex_cpy.shamt = id_ex.shamt;
-    id_ex_cpy.memRead = id_ex.memRead;
-    id_ex_cpy.regWrite = id_ex.regWrite;
-    id_ex_cpy.insertedNOP = id_ex.insertedNOP;
+        id_ex_cpy.IR = id_ex.IR;
+        id_ex_cpy.opcode = id_ex.opcode;
+        id_ex_cpy.func_code = id_ex.func_code;
+        id_ex_cpy.nPC = id_ex.nPC;
+        id_ex_cpy.RS = id_ex.RS;
+        id_ex_cpy.RT = id_ex.RT;
+        id_ex_cpy.RD = id_ex.RD;
+        id_ex_cpy.immed = id_ex.immed;
+        id_ex_cpy.A = id_ex.A;
+        id_ex_cpy.B = id_ex.B;
+        id_ex_cpy.seimmed = id_ex.seimmed;
+        id_ex_cpy.shamt = id_ex.shamt;
+        id_ex_cpy.memRead = id_ex.memRead;
+        id_ex_cpy.regWrite = id_ex.regWrite;
+        id_ex_cpy.insertedNOP = id_ex.insertedNOP;
 
-    ex_mem_cpy.IR = ex_mem.IR;
-    ex_mem_cpy.BrTgt = ex_mem.BrTgt;
-    ex_mem_cpy.Zero = ex_mem.Zero;
-    ex_mem_cpy.ALUOut = ex_mem.ALUOut;
-    ex_mem_cpy.RD = ex_mem.RD;
-    ex_mem_cpy.B = ex_mem.B;
-    ex_mem_cpy.regWrite = ex_mem.regWrite;
-    ex_mem_cpy.memWrite = ex_mem.memWrite;
-    ex_mem_cpy.memRead = ex_mem.memRead;
+        ex_mem_cpy.IR = ex_mem.IR;
+        ex_mem_cpy.BrTgt = ex_mem.BrTgt;
+        ex_mem_cpy.Zero = ex_mem.Zero;
+        ex_mem_cpy.ALUOut = ex_mem.ALUOut;
+        ex_mem_cpy.RD = ex_mem.RD;
+        ex_mem_cpy.B = ex_mem.B;
+        ex_mem_cpy.regWrite = ex_mem.regWrite;
+        ex_mem_cpy.memWrite = ex_mem.memWrite;
+        ex_mem_cpy.memRead = ex_mem.memRead;
 
-    mem_wb_cpy.IR = mem_wb.IR;
-    mem_wb_cpy.RD = mem_wb.RD;
-    mem_wb_cpy.memData = mem_wb.memData;
-    mem_wb_cpy.ALUOut = mem_wb.ALUOut;
-    mem_wb_cpy.regWrite = mem_wb.regWrite;
+        mem_wb_cpy.IR = mem_wb.IR;
+        mem_wb_cpy.RD = mem_wb.RD;
+        mem_wb_cpy.memData = mem_wb.memData;
+        mem_wb_cpy.ALUOut = mem_wb.ALUOut;
+        mem_wb_cpy.regWrite = mem_wb.regWrite;
+     }
 
     cyclesElapsed = cyclesElapsed + 1;
   }
   return (halt) ? 1 : 0;
- 
+
 }
 
 int runTillHalt() {
@@ -1541,40 +1545,42 @@ int runTillHalt() {
          break;
 
       /* Start Updating the Copies */
-    if_id_cpy.nPC = if_id.nPC;
-    if_id_cpy.IR = if_id.IR;
+      if ((iCache_stalls <= 0) && (dCache_stalls <= 0)) {
+         if_id_cpy.nPC = if_id.nPC;
+         if_id_cpy.IR = if_id.IR;
 
-    id_ex_cpy.IR = id_ex.IR;
-    id_ex_cpy.opcode = id_ex.opcode;
-    id_ex_cpy.func_code = id_ex.func_code;
-    id_ex_cpy.nPC = id_ex.nPC;
-    id_ex_cpy.RS = id_ex.RS;
-    id_ex_cpy.RT = id_ex.RT;
-    id_ex_cpy.RD = id_ex.RD;
-    id_ex_cpy.immed = id_ex.immed;
-    id_ex_cpy.A = id_ex.A;
-    id_ex_cpy.B = id_ex.B;
-    id_ex_cpy.seimmed = id_ex.seimmed;
-    id_ex_cpy.shamt = id_ex.shamt;
-    id_ex_cpy.memRead = id_ex.memRead;
-    id_ex_cpy.regWrite = id_ex.regWrite;
-    id_ex_cpy.insertedNOP = id_ex.insertedNOP;
+         id_ex_cpy.IR = id_ex.IR;
+         id_ex_cpy.opcode = id_ex.opcode;
+         id_ex_cpy.func_code = id_ex.func_code;
+         id_ex_cpy.nPC = id_ex.nPC;
+         id_ex_cpy.RS = id_ex.RS;
+         id_ex_cpy.RT = id_ex.RT;
+         id_ex_cpy.RD = id_ex.RD;
+         id_ex_cpy.immed = id_ex.immed;
+         id_ex_cpy.A = id_ex.A;
+         id_ex_cpy.B = id_ex.B;
+         id_ex_cpy.seimmed = id_ex.seimmed;
+         id_ex_cpy.shamt = id_ex.shamt;
+         id_ex_cpy.memRead = id_ex.memRead;
+         id_ex_cpy.regWrite = id_ex.regWrite;
+         id_ex_cpy.insertedNOP = id_ex.insertedNOP;
 
-    ex_mem_cpy.IR = ex_mem.IR;
-    ex_mem_cpy.BrTgt = ex_mem.BrTgt;
-    ex_mem_cpy.Zero = ex_mem.Zero;
-    ex_mem_cpy.ALUOut = ex_mem.ALUOut;
-    ex_mem_cpy.RD = ex_mem.RD;
-    ex_mem_cpy.B = ex_mem.B;
-    ex_mem_cpy.regWrite = ex_mem.regWrite;
-    ex_mem_cpy.memWrite = ex_mem.memWrite;
-    ex_mem_cpy.memRead = ex_mem.memRead;
+         ex_mem_cpy.IR = ex_mem.IR;
+         ex_mem_cpy.BrTgt = ex_mem.BrTgt;
+         ex_mem_cpy.Zero = ex_mem.Zero;
+         ex_mem_cpy.ALUOut = ex_mem.ALUOut;
+         ex_mem_cpy.RD = ex_mem.RD;
+         ex_mem_cpy.B = ex_mem.B;
+         ex_mem_cpy.regWrite = ex_mem.regWrite;
+         ex_mem_cpy.memWrite = ex_mem.memWrite;
+         ex_mem_cpy.memRead = ex_mem.memRead;
 
-    mem_wb_cpy.IR = mem_wb.IR;
-    mem_wb_cpy.RD = mem_wb.RD;
-    mem_wb_cpy.memData = mem_wb.memData;
-    mem_wb_cpy.ALUOut = mem_wb.ALUOut;
-    mem_wb_cpy.regWrite = mem_wb.regWrite;
+         mem_wb_cpy.IR = mem_wb.IR;
+         mem_wb_cpy.RD = mem_wb.RD;
+         mem_wb_cpy.memData = mem_wb.memData;
+         mem_wb_cpy.ALUOut = mem_wb.ALUOut;
+         mem_wb_cpy.regWrite = mem_wb.regWrite;
+      }
 
     cyclesElapsed = cyclesElapsed + 1;
    }
@@ -1588,5 +1594,5 @@ int runTillHalt() {
    dumpPipeState(mostRecentPS);
    haltReached = true;
    return 0;
- 
+
 }
