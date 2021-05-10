@@ -43,6 +43,9 @@ struct Cache {
 static Cache dCache;
 static Cache iCache;
 
+static Cache mostRecentICache;
+static Cache mostRecentDCache;
+
 static MemoryStore *myMem;
 
 static uint32_t reg[32];
@@ -225,32 +228,32 @@ int finalizeSimulator() {
    printSimStats(final_stats);
 
    // Write back all dirty values in the data cache to memory
-   uint32_t block_size = 1 << iCache.block_bits;
-   for (int i = 0; i < iCache.entries.size(); i++) {
+   uint32_t block_size = 1 << mostRecentICache.block_bits;
+   for (int i = 0; i < mostRecentICache.entries.size(); i++) {
       if (iCache.entries[i].isValid) {
-         uint32_t first_block_address = iCache.entries[i].tag << iCache.index_bits;
-         if (iCache.isDirect)
+         uint32_t first_block_address = mostRecentICache.entries[i].tag << mostRecentICache.index_bits;
+         if (mostRecentICache.isDirect)
             first_block_address |= i;
          else
             first_block_address |= (i >> 1);
-         first_block_address <<= iCache.block_bits + 2;
+         first_block_address <<= mostRecentICache.block_bits + 2;
          for (int j = 0; j < block_size; j++) {
-            myMem->setMemValue(first_block_address + 4 * j, iCache.entries[i].data[j], WORD_SIZE);
+            myMem->setMemValue(first_block_address + 4 * j, mostRecentICache.entries[i].data[j], WORD_SIZE);
          }
       }
    }
 
-   block_size = 1 << dCache.block_bits;
-   for (int i = 0; i < dCache.entries.size(); i++) {
-      if (dCache.entries[i].isValid) {
-         uint32_t first_block_address = dCache.entries[i].tag << dCache.index_bits;
-         if (dCache.isDirect)
+   block_size = 1 << mostRecentDCache.block_bits;
+   for (int i = 0; i < mostRecentDCache.entries.size(); i++) {
+      if (mostRecentDCache.entries[i].isValid) {
+         uint32_t first_block_address = mostRecentDCache.entries[i].tag << mostRecentDCache.index_bits;
+         if (mostRecentDCache.isDirect)
             first_block_address |= i;
          else
             first_block_address |= (i >> 1);
-         first_block_address <<= dCache.block_bits + 2;
+         first_block_address <<= mostRecentDCache.block_bits + 2;
          for (int j = 0; j < block_size; j++) {
-            myMem->setMemValue(first_block_address + 4 * j, dCache.entries[i].data[j], WORD_SIZE);
+            myMem->setMemValue(first_block_address + 4 * j, mostRecentDCache.entries[i].data[j], WORD_SIZE);
          }
       }
    }
@@ -1417,6 +1420,12 @@ static bool runOneCycle() {
       }
 
       return false;
+    }
+    if (iCache_stalls <= 0) {
+       mostRecentICache = iCache;
+    }
+    if (dCache_stalls <= 0) {
+       mostRecentDCache = dCache;
     }
    // Forwarding Section
     ex_fwd_A = 0;
